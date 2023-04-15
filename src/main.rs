@@ -262,7 +262,12 @@ fn startup_sequence(mut commands: Commands) {
     let square_lines = utility::draw_paths(&trapezoid);
 
     commands
-        .spawn((paths, Stroke::new(Color::WHITE, 4.0), Group, CenterPoint))
+        .spawn((
+            paths,
+            Stroke::new(Color::WHITE, 4.0),
+            Group,
+            CenterPoint(Vec2::new(0.0, 0.0)),
+        ))
         .with_children(|parent| {
             for point in points {
                 parent.spawn((point, Point));
@@ -288,7 +293,7 @@ fn camera_follow_system(
 
 fn find_center_point(
     point_query: Query<&Transform, With<Point>>,
-    mut line_query: Query<(&Children), With<Group>>,
+    mut line_query: Query<(&Children), With<CenterPoint>>,
     mut center_query: Query<&mut CenterPoint>,
 ) {
     let mut count: f32 = 0.0;
@@ -309,5 +314,4 @@ fn find_center_point(
         centerpoint.0 = Vec2::new(centerpoint_x, centerpoint_y);
         println!("centerpoint: ({},{})", centerpoint_x, centerpoint_y);
     }
-    println!("Hello");
 }
