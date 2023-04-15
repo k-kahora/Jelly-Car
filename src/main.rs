@@ -26,13 +26,16 @@ pub const GRAVITY: f32 = 9.;
 #[derive(Component)]
 struct Position(Vec2);
 
+#[derive(Component)]
+struct BoundingBox(Vec<Vec2>);
+
 // This is a marker
 #[derive(Component)]
 struct Point;
 
 // Bounding Box marker
 #[derive(Component)]
-struct BoundingBox;
+struct MiniBox(Vec<Vec2>);
 
 #[derive(Component)]
 struct Direction(Vec2);
@@ -176,7 +179,7 @@ impl utility {
 fn minimum_bounding_box(
     mut bounding_box_query: Query<&mut Path, With<BoundingBox>>,
     point_query: Query<&Transform, With<Point>>,
-    mut group_query: Query<(&mut Children), With<Group>>,    time: Res<Time>
+    mut group_query: Query<(&mut Children, &mut MiniBox), With<Group>>,    time: Res<Time>
 )
 {
 
@@ -185,7 +188,7 @@ fn minimum_bounding_box(
     // Gather bounding box children
     // Use point children to update the 
     
-    for (mut children) in group_query.iter_mut() {
+    for (mut children, mut minibox) in group_query.iter_mut() {
 	let mut path_builder = PathBuilder::new();
 	let mut maxX = f32::MIN;
 	let mut maxY = f32::MIN;
@@ -212,33 +215,16 @@ fn minimum_bounding_box(
 		    //   calulate all four points to get minimum bounding box
 	    }
 	}
+	let minibox_test = vec![
+	   Vec2::new(minX, minY),
+	   Vec2::new(minX, maxY),
+	   Vec2::new(maxX, maxY),
+	   Vec2::new(maxX, minY),
+	];
+
+	minibox.0 = minibox_test;
+    }
 	
-
-
-	for item in children.iter() {
-	    let bound_box = bounding_box_query.get_mut(*item);
-
-
-	    let mut path_builder = PathBuilder::new();
-
-	    path_builder.move_to(Vec2::new(minX, minY));
-	    path_builder.line_to(Vec2::new(minX, maxY));
-	    path_builder.line_to(Vec2::new(maxX, maxY));
-	    path_builder.line_to(Vec2::new(maxX, minY));
-
-	    path_builder.close();
-	    let path = path_builder.build();
-	    println!("{:?}", path);
-
-	    if let Ok(mut bound) = bound_box {
-		*bound = path;
-	    }
-	}
-	// let bounding_box = bounding_box_query.get_mut(children.it);
-	// if let Ok(mut path) = bounding_box {
-	//     *path = path_builder.build();
-	// }
-	}
 }
   
 
@@ -306,7 +292,8 @@ fn startup_sequence(mut commands: Commands) {
     commands.spawn((
         paths,
         Stroke::new(Color::WHITE, 4.0),
-	Group
+	Group,
+	MiniBox(Vec::new())
     )).with_children(|parent| {
 		     for point in points {
 			 parent.spawn((point, Point));
