@@ -15,6 +15,7 @@ fn main() {
         .add_plugin(ShapePlugin)
         .add_startup_system(startup_sequence)
         .add_system(point_movement)
+        .add_system(minimum_bounding_box)
         .add_system(line_movement)
         .run();
 }
@@ -71,8 +72,12 @@ struct Square{
 // We have a BoundingBox that has its own shape
 // position
 // And stroke color
+#[derive(Component)]
+struct MiniPoints(Vec);
+
 #[derive(Bundle)]
 struct BoundingBoxBundle {
+    minimum_points: MiniPoints,
     shape: ShapeBundle,
     name: BoundingBox,
 }
@@ -141,6 +146,7 @@ impl utility {
     }
 
     fn draw_paths(list_of_points: &Vec<Vec2>) -> ShapeBundle {
+
         let mut path_builder = PathBuilder::new();
         path_builder.move_to(list_of_points[0]);
 
@@ -171,9 +177,9 @@ impl utility {
 // Query children in the line query
 
 fn minimum_bounding_box(
-    bounding_box_query: Query<&mut Path, With<BoundingBox>>,
+    mut bounding_box_query: Query<&mut Path, With<BoundingBox>>,
     point_query: Query<&Transform, With<Point>>,
-    mut group_query: Query<(&mut Path, &Children), With<Group>>,    time: Res<Time>
+    mut group_query: Query<(&mut Children), With<Group>>,    time: Res<Time>
 )
 {
 
@@ -182,26 +188,62 @@ fn minimum_bounding_box(
     // Gather bounding box children
     // Use point children to update the 
     
-    for (mut path, children) in group_query.iter_mut() {
+    for (mut children) in group_query.iter_mut() {
 	let mut path_builder = PathBuilder::new();
-	for &child  in children.iter() {
-	    let point = point_query.get(child);
-	    let max_x = f32::MIN;
-	    let max_y = f32::MIN;
-	    let min_x = f32::MAX;
-	    let min_y = f32::MAX;
+	let mut maxX = f32::MIN;
+	let mut maxY = f32::MIN;
+	let mut minX = f32::MAX;
+	let mut minY = f32::MAX; 
+	for mut child  in children.iter() {
+	    let point = point_query.get(*child);
+	    // let mut box = bounding_box_query.get(child)
 	    if let Ok(transform) = point {
-		let current_pos = transform.translation
-		if current_pos.x > min_x {
-		   min_x = 
+		let position = transform.translation;
+		// Update minimum and maximum X and Y values
+		if position.x < minX {
+		    minX = position.x;
 		}
-		//   calulate all four points to get minimum bounding box
+		if position.y < minY {
+		    minY = position.y;
+		}
+		if position.x > maxX {
+		    maxX = position.x;
+		}
+		if position.y > maxY {
+		    maxY = position.y;
+		}	
+		    //   calulate all four points to get minimum bounding box
 	    }
 	}
+	
 
-    }
-  
+	let array:Vec<Entity> = children.iter();
+
+	for item in array {
+	    let bound_box = bounding_box_query.get(item);
+
+	    let mut path_builder = PathBuilder::new();
+
+	    path_builder.move_to(Vec2::new(minX, minY));
+	    path_builder.line_to(Vec2::new(minX, maxY));
+	    path_builder.line_to(Vec2::new(maxX, maxY));
+	    path_builder.line_to(Vec2::new(maxX, minY));
+
+	    if let Ok(bound) = bound_box {
+	    }
+	    path_builder.close();
+	    let path = path_builder.build();
+	}
+
+
+
+	// let bounding_box = bounding_box_query.get_mut(children.it);
+	// if let Ok(mut path) = bounding_box {
+	//     *path = path_builder.build();
+	// }
+	}
 }
+  
 
 // Bounding Box needs to be calculated every frame for all non moving entitys
 
@@ -272,7 +314,7 @@ fn startup_sequence(mut commands: Commands) {
 		     for point in points {
 			 parent.spawn((point, Point));
 		     }
-	parent.spawn(bounding_box)
+	parent.spawn(bounding_box);
 	// Make a bounding box here
     });
 
