@@ -14,7 +14,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(ShapePlugin)
         .add_startup_system(startup_sequence)
-        // .add_system(point_movement)
+        .add_system(point_movement)
         .add_system(minimum_bounding_box)
         .add_system(update_bounding_box)
         .add_system(line_movement)
@@ -37,6 +37,7 @@ struct Point;
 // Bounding Box marker
 #[derive(Component)]
 struct MiniBox(Vec<Vec2>);
+
 
 #[derive(Component)]
 struct Direction(Vec2);
@@ -92,8 +93,6 @@ impl Default for BoundingBoxBundle {
 		path,
 		..default()
 	    }
-
-	    
 	}
     }
 }
@@ -312,11 +311,13 @@ fn startup_sequence(mut commands: Commands) {
     let square_points = utility::new_group(&trapezoid);
     let square_lines  = utility::draw_paths(&trapezoid);
 
+    let default_minibox = vec![Vec2::new(0., 0.),Vec2::new(0., 0.),Vec2::new(0., 0.),Vec2::new(0., 0.)];
+
     commands.spawn((
         paths,
         Stroke::new(Color::WHITE, 4.0),
 	Group,
-	MiniBox(Vec::new())
+	MiniBox(default_minibox.clone())
     )).with_children(|parent| {
 		     for point in points {
 			 parent.spawn((point, Point));
@@ -330,7 +331,7 @@ fn startup_sequence(mut commands: Commands) {
         square_lines,
         Stroke::new(Color::WHITE, 4.0),
 	Group,
-	MiniBox(Vec::new())
+	MiniBox(default_minibox.clone())
     )).with_children(|parent| {
 		     for point in square_points {
 			 parent.spawn((point, Point));
