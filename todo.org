@@ -1,0 +1,15 @@
+* DONE Link group of points with a path somehow (I an thinking like a key in databases)
+CLOSED: [2023-04-04 Tue 20:23]
+** DONE Points are linked but only for one object
+CLOSED: [2023-04-04 Tue 20:23]
+* DONE link points together with lines
+* TODO Implement collisons
+** Make updateing boundig boxs
+** Implement Ray Casting
+Ray cast from horizontal or from vertical, If there is two collisions then it is not in the polygon if there is one collision it is.  The ray cast needs to happen outside the polygon.
+* You can attach children of diffrent entitys to a object and query them seperately
+** For a object it will have the following children
+*** Points
+*** Bounding Box
+*** Springs
+
