@@ -262,7 +262,7 @@ fn startup_sequence(mut commands: Commands) {
     let square_lines = utility::draw_paths(&trapezoid);
 
     commands
-        .spawn((paths, Stroke::new(Color::WHITE, 4.0), Group, CenterPoint))
+        .spawn((paths, Stroke::new(Color::WHITE, 4.0), Group, Car, CenterPoint(Vec2::new(0., 0.))))
         .with_children(|parent| {
             for point in points {
                 parent.spawn((point, Point));
