@@ -14,8 +14,9 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(ShapePlugin)
         .add_startup_system(startup_sequence)
-        .add_system(point_movement)
+        // .add_system(point_movement)
         .add_system(minimum_bounding_box)
+        .add_system(update_bounding_box)
         .add_system(line_movement)
         .run();
 }
@@ -27,7 +28,7 @@ pub const GRAVITY: f32 = 9.;
 struct Position(Vec2);
 
 #[derive(Component)]
-struct BoundingBox(Vec<Vec2>);
+struct BoundingBox;
 
 // This is a marker
 #[derive(Component)]
@@ -66,11 +67,6 @@ struct Spring {
     // Rest length
     // Dampang Factor
 }
-#[derive(Component)]
-struct Square{
-    points: Vec<Vec2>,
-    
-}
 
 // We have a BoundingBox that has its own shape
 // position
@@ -82,15 +78,22 @@ struct BoundingBoxBundle {
     stroke: Stroke,
 }
 
-impl Default for Square {
+impl Default for BoundingBoxBundle {
     fn default() -> Self {
-	Square { points: vec![
-	    Vec2::new(0., 0.),
-	    Vec2::new(0., 1.),
-	    Vec2::new(1., 1.),
-	    Vec2::new(1., 0.),
-	    Vec2::new(0., 0.),
-	    ]
+        let mut path_builder = PathBuilder::new();
+        path_builder.move_to(Vec2::new(0., 0.));
+        path_builder.line_to(Vec2::new(0., 20.));
+        path_builder.line_to(Vec2::new(10., 10.));
+	path_builder.close();
+	let path = path_builder.build();
+	BoundingBoxBundle {
+	    stroke: Stroke::new(Color::YELLOW, 3.0),
+	    shape: ShapeBundle {
+		path,
+		..default()
+	    }
+
+	    
 	}
     }
 }
@@ -165,19 +168,39 @@ impl utility {
     }
     fn new_bounnding_box() -> BoundingBoxBundle {
 	BoundingBoxBundle {
-	    shape: ShapeBundle {
-		..default()
-	    },
-            stroke: Stroke::new(Color::YELLOW, 4.0),
+	    ..default()
 	}
     }
 }
 
 // The line is the parent and the points are the children
 // Query children in the line query
+fn update_bounding_box(
+    mut bounding_box_query: Query<&mut Path, With<BoundingBox>>,
+    mut group_query: Query<(&mut Children, &mut MiniBox), With<Group>>,    time: Res<Time>
+) {
+    
+    for (mut children, mut minibox) in group_query.iter_mut() {
+	for mut child  in children.iter() {
+	    let mut path_builder = PathBuilder::new();
+	    let box_bounding = bounding_box_query.get_mut(*child);
+	    println!("{:?}", minibox.0);
+	    path_builder.move_to(minibox.0[0]);
+	    path_builder.line_to(minibox.0[1]);
+	    path_builder.line_to(minibox.0[2]);
+	    path_builder.line_to(minibox.0[3]);
+	    if let Ok(mut path) = box_bounding {
+		path_builder.close();
+		*path = path_builder.build();
+	    }
+	    
+	}
+
+    }
+
+}
 
 fn minimum_bounding_box(
-    mut bounding_box_query: Query<&mut Path, With<BoundingBox>>,
     point_query: Query<&Transform, With<Point>>,
     mut group_query: Query<(&mut Children, &mut MiniBox), With<Group>>,    time: Res<Time>
 )
@@ -189,7 +212,6 @@ fn minimum_bounding_box(
     // Use point children to update the 
     
     for (mut children, mut minibox) in group_query.iter_mut() {
-	let mut path_builder = PathBuilder::new();
 	let mut maxX = f32::MIN;
 	let mut maxY = f32::MIN;
 	let mut minX = f32::MAX;
@@ -285,6 +307,7 @@ fn startup_sequence(mut commands: Commands) {
     let points = utility::new_group(&car);
     let paths = utility::draw_paths(&car);
     let bounding_box = utility::new_bounnding_box();
+    let bounding_box_trap = utility::new_bounnding_box();
 
     let square_points = utility::new_group(&trapezoid);
     let square_lines  = utility::draw_paths(&trapezoid);
@@ -298,7 +321,7 @@ fn startup_sequence(mut commands: Commands) {
 		     for point in points {
 			 parent.spawn((point, Point));
 		     }
-	parent.spawn(bounding_box);
+	parent.spawn((bounding_box, BoundingBox));
 	// Make a bounding box here
     });
 
@@ -307,10 +330,12 @@ fn startup_sequence(mut commands: Commands) {
         square_lines,
         Stroke::new(Color::WHITE, 4.0),
 	Group,
+	MiniBox(Vec::new())
     )).with_children(|parent| {
 		     for point in square_points {
 			 parent.spawn((point, Point));
 		     }
+	parent.spawn((bounding_box_trap, BoundingBox));
 
     });
 }
