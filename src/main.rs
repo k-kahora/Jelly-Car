@@ -68,9 +68,7 @@ struct Square{
 // And stroke color
 #[derive(Bundle)]
 struct BoundingBoxBundle {
-    bounding_square: Square,
-    stroke: Stroke,
-    // shape: ShapeBundle,
+    shepe: ShapeBundle
 }
 
 impl Default for Square {
@@ -87,7 +85,7 @@ impl Default for Square {
 }
 
 #[derive(Bundle)]
-struct MassPointGroup {
+struct utility {
 }
 
 #[derive(Component)]
@@ -107,7 +105,7 @@ struct PointMassBundle {
     color: Fill,
 }
 
-impl MassPointGroup {
+impl utility {
     fn new_group(list_of_points: &Vec<Vec2>) -> Vec<PointMassBundle> {
         let mut point_masses = Vec::new();
 
@@ -154,12 +152,9 @@ impl MassPointGroup {
             ..default()
         }
     }
-    fn bounding_box_spawn(list_of_points: &Vec<Vec2>) -> ShapeBundle {
-	let square = shapes::RegularPolygon {
-	    sides: 4,
-	    feature: shapes::RegularPolygonFeature::Radius(200.0),
-	    ..shapes::RegularPolygon::default()
-	};
+    fn new_bounnding_box() -> ShapeBundle {
+
+	ShapeBundle { ..default() }
     }
 }
 
@@ -229,12 +224,12 @@ fn startup_sequence(mut commands: Commands) {
         Vec2::new(0., 0.),
     ];
 
-    let points = MassPointGroup::new_group(&car);
-    let paths = MassPointGroup::draw_paths(&car);
-    let bounding_box = MassPointGroup::new_bounnding_box(&car);
+    let points = utility::new_group(&car);
+    let paths = utility::draw_paths(&car);
+    let bounding_box = utility::new_bounnding_box();
 
-    let square_points = MassPointGroup::new_group(&trapezoid);
-    let square_lines  = MassPointGroup::draw_paths(&trapezoid);
+    let square_points = utility::new_group(&trapezoid);
+    let square_lines  = utility::draw_paths(&trapezoid);
 
     commands.spawn((
         paths,
@@ -244,7 +239,7 @@ fn startup_sequence(mut commands: Commands) {
 		     for point in points {
 			 parent.spawn((point, Point));
 		     }
-	parent.spawn(bounding_box)
+	parent.spawn()
 	// Make a bounding box here
     });
 
