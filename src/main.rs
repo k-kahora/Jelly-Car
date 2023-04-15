@@ -17,6 +17,7 @@ fn main() {
         .add_system(point_movement)
         .add_system(line_movement)
         .add_system(find_center_point)
+        .add_system(camera_follow_system)
         .run();
 }
 
@@ -289,7 +290,12 @@ fn camera_follow_system(
     centerpoint_query: Query<&CenterPoint>,
     mut camera_query: Query<&mut Transform, With<Camera>>,
 ) {
-    if let Ok(centerpoint_transform) = centerpoint_query.single() {}
+    if let Ok(centerpoint_transform) = centerpoint_query.get_single() {
+        if let Ok(mut camera_transform) = camera_query.get_single_mut() {
+            camera_transform.translation.x = centerpoint_transform.0.x;
+            camera_transform.translation.y = centerpoint_transform.0.y;
+        }
+    }
 }
 
 fn find_center_point(
