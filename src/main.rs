@@ -16,6 +16,7 @@ fn main() {
         .add_startup_system(startup_sequence)
         .add_system(point_movement)
         .add_system(line_movement)
+        .add_system(find_center_point)
         .run();
 }
 
@@ -46,6 +47,12 @@ struct Force(Vec2);
 
 #[derive(Component)]
 struct DampingFactor(i32);
+
+#[derive(Component)]
+struct Car;
+
+#[derive(Component)]
+struct CenterPoint(Vec2);
 
 // We have a object this object is a entity with the name Car
 // The car has a buck of points associated with it that has owners
@@ -164,6 +171,7 @@ fn minimum_bounding_box(
     mut line_query: Query<(&mut Path, &Children), With<Group>>,
     time: Res<Time>,
 ) {
+    let mut path_builder = PathBuilder::new();
     let mut maxX: f32 = 0.0;
     let mut minX: f32 = 100.0;
     let mut maxY: f32 = 0.0;
@@ -186,7 +194,6 @@ fn minimum_bounding_box(
 
         // ...
     }
-    let mut path_builder = PathBuilder::new();
 
     // Create new Path component with four points representing the bounding box corners
     // ...
@@ -255,7 +262,7 @@ fn startup_sequence(mut commands: Commands) {
     let square_lines = utility::draw_paths(&trapezoid);
 
     commands
-        .spawn((paths, Stroke::new(Color::WHITE, 4.0), Group))
+        .spawn((paths, Stroke::new(Color::WHITE, 4.0), Group, CenterPoint))
         .with_children(|parent| {
             for point in points {
                 parent.spawn((point, Point));
@@ -271,4 +278,36 @@ fn startup_sequence(mut commands: Commands) {
                 parent.spawn((point, Point));
             }
         });
+}
+
+fn camera_follow_system(
+    car_query: Query<&Transform, With<Car>>,
+    mut camera_query: Query<&mut Transform, With<Camera>>,
+) {
+}
+
+fn find_center_point(
+    point_query: Query<&Transform, With<Point>>,
+    mut line_query: Query<(&Children), With<Group>>,
+    mut center_query: Query<&mut CenterPoint>,
+) {
+    let mut count: f32 = 0.0;
+    let mut sum_x: f32 = 0.0;
+    let mut sum_y: f32 = 0.0;
+    for (children) in line_query.iter_mut() {
+        for &child in children.iter() {
+            if let Ok(transform) = point_query.get(child) {
+                count = count + 1.0;
+                sum_x += transform.translation.x;
+                sum_y += transform.translation.y;
+            }
+        }
+    }
+    let centerpoint_x: f32 = sum_x / count;
+    let centerpoint_y: f32 = sum_y / count;
+    if let Ok(mut centerpoint) = center_query.get_single_mut() {
+        centerpoint.0 = Vec2::new(centerpoint_x, centerpoint_y);
+        println!("centerpoint: ({},{})", centerpoint_x, centerpoint_y);
+    }
+    println!("Hello");
 }
