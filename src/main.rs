@@ -288,16 +288,16 @@ fn camera_follow_system(
 
 fn find_center_point(
     point_query: Query<&Transform, With<Point>>,
-    mut line_query: Query<(&Children), With<Group>>,
+    mut line_query: Query<(&Children), With<CenterPoint>>,
     mut center_query: Query<&mut CenterPoint>,
 ) {
-    let mut count: f32 = 0.0;
+    let mut count: f32 = 0.;
     let mut sum_x: f32 = 0.0;
     let mut sum_y: f32 = 0.0;
     for (children) in line_query.iter_mut() {
         for &child in children.iter() {
             if let Ok(transform) = point_query.get(child) {
-                count = count + 1.0;
+                count = count + 1.;
                 sum_x += transform.translation.x;
                 sum_y += transform.translation.y;
             }
@@ -305,6 +305,7 @@ fn find_center_point(
     }
     let centerpoint_x: f32 = sum_x / count;
     let centerpoint_y: f32 = sum_y / count;
+    println!("{}", count);
     if let Ok(mut centerpoint) = center_query.get_single_mut() {
         centerpoint.0 = Vec2::new(centerpoint_x, centerpoint_y);
         println!("centerpoint: ({},{})", centerpoint_x, centerpoint_y);
