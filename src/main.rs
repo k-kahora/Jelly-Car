@@ -3,6 +3,7 @@ use bevy::{
     transform::{self, commands},
 };
 
+use bevy::window::PrimaryWindow;
 use bevy_prototype_lyon::prelude::*;
 use rand::prelude::*;
 
@@ -18,6 +19,7 @@ fn main() {
         .add_system(line_movement)
         .add_system(find_center_point)
         .add_system(camera_follow_system)
+        .add_system(confine_movement)
         .run();
 }
 
@@ -317,5 +319,27 @@ fn find_center_point(
     if let Ok(mut centerpoint) = center_query.get_single_mut() {
         centerpoint.0 = Vec2::new(centerpoint_x, centerpoint_y);
         //println!("centerpoint: ({},{})", centerpoint_x, centerpoint_y);
+    }
+}
+
+fn confine_movement(
+    mut point_query: Query<(&mut Speed, &mut Transform), With<Point>>,
+    mut line_query: Query<(&Children), With<Car>>,
+    window_query: Query<&Window, With<PrimaryWindow>>,
+) {
+    for (children) in line_query.iter_mut() {
+        for &child in children.iter() {
+            let mut point = point_query.get_mut(child);
+            if let Ok((mut speed_transform, mut point_transform)) = point {
+                let window = window_query.get_single().unwrap();
+                let min_y: f32 = -200.0;
+                let mut translation = point_transform.translation;
+                if translation.y < min_y {
+                    translation.y = min_y;
+                    speed_transform.0 = 0.0;
+                }
+                point_transform.translation = translation;
+            }
+        }
     }
 }
