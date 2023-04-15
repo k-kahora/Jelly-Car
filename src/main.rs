@@ -154,6 +154,13 @@ impl MassPointGroup {
             ..default()
         }
     }
+    fn bounding_box_spawn(list_of_points: &Vec<Vec2>) -> ShapeBundle {
+	let square = shapes::RegularPolygon {
+	    sides: 4,
+	    feature: shapes::RegularPolygonFeature::Radius(200.0),
+	    ..shapes::RegularPolygon::default()
+	};
+    }
 }
 
 // The line is the parent and the points are the children
@@ -161,11 +168,10 @@ impl MassPointGroup {
 
 fn minimum_bounding_box(
     point_query: Query<&Transform, With<Point>>,
-    mut line_query: Query<(&mut Path, &Children), With<Group>>,
     time: Res<Time>
 )
 {
-
+  
 }
 
 
@@ -225,6 +231,7 @@ fn startup_sequence(mut commands: Commands) {
 
     let points = MassPointGroup::new_group(&car);
     let paths = MassPointGroup::draw_paths(&car);
+    let bounding_box = MassPointGroup::new_bounnding_box(&car);
 
     let square_points = MassPointGroup::new_group(&trapezoid);
     let square_lines  = MassPointGroup::draw_paths(&trapezoid);
@@ -237,6 +244,8 @@ fn startup_sequence(mut commands: Commands) {
 		     for point in points {
 			 parent.spawn((point, Point));
 		     }
+	parent.spawn(bounding_box)
+	// Make a bounding box here
     });
 
     // Parent is the lines, child is the bounding box, and children are all the points
