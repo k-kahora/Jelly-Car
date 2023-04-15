@@ -67,9 +67,7 @@ struct Square {
 // And stroke color
 #[derive(Bundle)]
 struct BoundingBoxBundle {
-    bounding_square: Square,
-    stroke: Stroke,
-    // shape: ShapeBundle,
+    shepe: ShapeBundle,
 }
 
 impl Default for Square {
@@ -87,7 +85,7 @@ impl Default for Square {
 }
 
 #[derive(Bundle)]
-struct MassPointGroup {}
+struct utility {}
 
 #[derive(Component)]
 struct Group;
@@ -106,7 +104,7 @@ struct PointMassBundle {
     color: Fill,
 }
 
-impl MassPointGroup {
+impl utility {
     fn new_group(list_of_points: &Vec<Vec2>) -> Vec<PointMassBundle> {
         let mut point_masses = Vec::new();
 
@@ -153,25 +151,15 @@ impl MassPointGroup {
             ..default()
         }
     }
+    fn new_bounnding_box() -> ShapeBundle {
+        ShapeBundle { ..default() }
+    }
 }
 
 // The line is the parent and the points are the children
 // Query children in the line query
 
-fn minimum_bounding_box(
-    point_query: Query<&Transform, With<Point>>,
-    mut line_query: Query<(&mut Path, &Children), With<Group>>,
-    time: Res<Time>,
-) {
-    for transform in point_query.iter() {
-        let position = transform.translation;
-
-        // Update minimum and maximum X and Y values
-        // ...
-    }
-    // Create new Path component with four points representing the bounding box corners
-    // ...
-}
+fn minimum_bounding_box(point_query: Query<&Transform, With<Point>>, time: Res<Time>) {}
 
 // Bounding Box needs to be calculated every frame for all non moving entitys
 
@@ -228,11 +216,12 @@ fn startup_sequence(mut commands: Commands) {
         Vec2::new(0., 0.),
     ];
 
-    let points = MassPointGroup::new_group(&car);
-    let paths = MassPointGroup::draw_paths(&car);
+    let points = utility::new_group(&car);
+    let paths = utility::draw_paths(&car);
+    let bounding_box = utility::new_bounnding_box();
 
-    let square_points = MassPointGroup::new_group(&trapezoid);
-    let square_lines = MassPointGroup::draw_paths(&trapezoid);
+    let square_points = utility::new_group(&trapezoid);
+    let square_lines = utility::draw_paths(&trapezoid);
 
     commands
         .spawn((paths, Stroke::new(Color::WHITE, 4.0), Group))
@@ -240,6 +229,7 @@ fn startup_sequence(mut commands: Commands) {
             for point in points {
                 parent.spawn((point, Point));
             }
+            // Make a bounding box here
         });
 
     // Parent is the lines, child is the bounding box, and children are all the points
