@@ -1,10 +1,10 @@
 use bevy::{
     prelude::{shape::Circle, *},
-    transform::{commands, self},
+    transform::{self, commands},
 };
 
-use rand::prelude::*;
 use bevy_prototype_lyon::prelude::*;
+use rand::prelude::*;
 
 // For each point spawn a shape bundle, color, and stroke maybe
 
@@ -58,9 +58,8 @@ struct Spring {
     // Dampang Factor
 }
 #[derive(Component)]
-struct Square{
+struct Square {
     points: Vec<Vec2>,
-    
 }
 
 // We have a BoundingBox that has its own shape
@@ -68,25 +67,27 @@ struct Square{
 // And stroke color
 #[derive(Bundle)]
 struct BoundingBoxBundle {
-    shepe: ShapeBundle
+    bounding_square: Square,
+    stroke: Stroke,
+    // shape: ShapeBundle,
 }
 
 impl Default for Square {
     fn default() -> Self {
-	Square { points: vec![
-	    Vec2::new(0., 0.),
-	    Vec2::new(0., 1.),
-	    Vec2::new(1., 1.),
-	    Vec2::new(1., 0.),
-	    Vec2::new(0., 0.),
-	    ]
-	}
+        Square {
+            points: vec![
+                Vec2::new(0., 0.),
+                Vec2::new(0., 1.),
+                Vec2::new(1., 1.),
+                Vec2::new(1., 0.),
+                Vec2::new(0., 0.),
+            ],
+        }
     }
 }
 
 #[derive(Bundle)]
-struct utility {
-}
+struct MassPointGroup {}
 
 #[derive(Component)]
 struct Group;
@@ -105,30 +106,30 @@ struct PointMassBundle {
     color: Fill,
 }
 
-impl utility {
+impl MassPointGroup {
     fn new_group(list_of_points: &Vec<Vec2>) -> Vec<PointMassBundle> {
         let mut point_masses = Vec::new();
 
         for point in list_of_points {
-	    // giving the point a center makes the transform.translation glitchy
+            // giving the point a center makes the transform.translation glitchy
             let circle = shapes::Circle {
                 radius: 6.,
-		..default()
+                ..default()
             };
 
             point_masses.push(PointMassBundle {
                 mass: Mass(1),
                 position: Position(point.clone()),
-// random::<f32>(),random::<f32>()
+                // random::<f32>(),random::<f32>()
                 direction: Direction(Vec2::new(0., -1.)),
                 shape: ShapeBundle {
                     path: GeometryBuilder::build_as(&circle),
-		    transform: Transform::from_xyz(point.clone().x, point.clone().y, 0.),
+                    transform: Transform::from_xyz(point.clone().x, point.clone().y, 0.),
                     ..default()
                 },
                 // in the future get the name from MassPointgroup
                 color: Fill::color(Color::WHITE),
-		speed: Speed(0.),
+                speed: Speed(0.),
             })
         }
 
@@ -152,10 +153,6 @@ impl utility {
             ..default()
         }
     }
-    fn new_bounnding_box() -> ShapeBundle {
-
-	ShapeBundle { ..default() }
-    }
 }
 
 // The line is the parent and the points are the children
@@ -163,39 +160,46 @@ impl utility {
 
 fn minimum_bounding_box(
     point_query: Query<&Transform, With<Point>>,
-    time: Res<Time>
-)
-{
-  
+    mut line_query: Query<(&mut Path, &Children), With<Group>>,
+    time: Res<Time>,
+) {
+    for transform in point_query.iter() {
+        let position = transform.translation;
+
+        // Update minimum and maximum X and Y values
+        // ...
+    }
+    // Create new Path component with four points representing the bounding box corners
+    // ...
 }
 
-
 // Bounding Box needs to be calculated every frame for all non moving entitys
-
 
 fn line_movement(
     point_query: Query<&Transform, With<Point>>,
     mut line_query: Query<(&mut Path, &Children), With<Group>>,
-    time: Res<Time>
-)
-{
+    time: Res<Time>,
+) {
     for (mut path, children) in line_query.iter_mut() {
-	let mut path_builder = PathBuilder::new();
-	for &child  in children.iter() {
-	    let point = point_query.get(child);
-	    if let Ok(transform) = point {
-		path_builder.line_to(transform.translation.truncate());
-	    }
-	}
-	path_builder.close();
-	*path = path_builder.build();
+        let mut path_builder = PathBuilder::new();
+        for &child in children.iter() {
+            let point = point_query.get(child);
+            if let Ok(transform) = point {
+                path_builder.line_to(transform.translation.truncate());
+            }
+        }
+        path_builder.close();
+        *path = path_builder.build();
     }
 }
 
-fn point_movement(mut point_query: Query<(&mut Transform, &Point, &Direction, &mut Speed)>, time: Res<Time>) {
+fn point_movement(
+    mut point_query: Query<(&mut Transform, &Point, &Direction, &mut Speed)>,
+    time: Res<Time>,
+) {
     for (mut transform, point, velocity, mut speed) in point_query.iter_mut() {
         let direction = Vec3::new(velocity.0.x, velocity.0.y, 0.);
-	speed.0 += GRAVITY;
+        speed.0 += GRAVITY;
         transform.translation += direction.normalize() * speed.0 * time.delta_seconds();
     }
 }
@@ -224,34 +228,26 @@ fn startup_sequence(mut commands: Commands) {
         Vec2::new(0., 0.),
     ];
 
-    let points = utility::new_group(&car);
-    let paths = utility::draw_paths(&car);
-    let bounding_box = utility::new_bounnding_box();
+    let points = MassPointGroup::new_group(&car);
+    let paths = MassPointGroup::draw_paths(&car);
 
-    let square_points = utility::new_group(&trapezoid);
-    let square_lines  = utility::draw_paths(&trapezoid);
+    let square_points = MassPointGroup::new_group(&trapezoid);
+    let square_lines = MassPointGroup::draw_paths(&trapezoid);
 
-    commands.spawn((
-        paths,
-        Stroke::new(Color::WHITE, 4.0),
-	Group
-    )).with_children(|parent| {
-		     for point in points {
-			 parent.spawn((point, Point));
-		     }
-	parent.spawn()
-	// Make a bounding box here
-    });
+    commands
+        .spawn((paths, Stroke::new(Color::WHITE, 4.0), Group))
+        .with_children(|parent| {
+            for point in points {
+                parent.spawn((point, Point));
+            }
+        });
 
     // Parent is the lines, child is the bounding box, and children are all the points
-    commands.spawn((
-        square_lines,
-        Stroke::new(Color::WHITE, 4.0),
-	Group,
-    )).with_children(|parent| {
-		     for point in square_points {
-			 parent.spawn((point, Point));
-		     }
-
-    });
+    commands
+        .spawn((square_lines, Stroke::new(Color::WHITE, 4.0), Group))
+        .with_children(|parent| {
+            for point in square_points {
+                parent.spawn((point, Point));
+            }
+        });
 }
