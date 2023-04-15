@@ -25,8 +25,13 @@ pub const GRAVITY: f32 = 9.;
 #[derive(Component)]
 struct Position(Vec2);
 
+// This is a marker
 #[derive(Component)]
 struct Point;
+
+// Bounding Box marker
+#[derive(Component)]
+struct BoundingBox;
 
 #[derive(Component)]
 struct Direction(Vec2);
@@ -68,7 +73,8 @@ struct Square{
 // And stroke color
 #[derive(Bundle)]
 struct BoundingBoxBundle {
-    shepe: ShapeBundle
+    shape: ShapeBundle,
+    name: BoundingBox,
 }
 
 impl Default for Square {
@@ -99,7 +105,6 @@ struct PointMassBundle {
     direction: Direction,
     // Later replace speed with force
     speed: Speed,
-
     // Superflous data
     shape: ShapeBundle,
     color: Fill,
@@ -152,9 +157,13 @@ impl utility {
             ..default()
         }
     }
-    fn new_bounnding_box() -> ShapeBundle {
-
-	ShapeBundle { ..default() }
+    fn new_bounnding_box() -> BoundingBoxBundle {
+	BoundingBoxBundle {
+	    shape: ShapeBundle {
+		..default()
+	    },
+	    name: BoundingBox
+	}
     }
 }
 
@@ -162,16 +171,39 @@ impl utility {
 // Query children in the line query
 
 fn minimum_bounding_box(
+    bounding_box_query: Query<&mut Path, With<BoundingBox>>,
     point_query: Query<&Transform, With<Point>>,
-    time: Res<Time>
+    mut group_query: Query<(&mut Path, &Children), With<Group>>,    time: Res<Time>
 )
 {
+
+    // I want to query all groups
+    // Gathre point children
+    // Gather bounding box children
+    // Use point children to update the 
+    
+    for (mut path, children) in group_query.iter_mut() {
+	let mut path_builder = PathBuilder::new();
+	for &child  in children.iter() {
+	    let point = point_query.get(child);
+	    let max_x = f32::MIN;
+	    let max_y = f32::MIN;
+	    let min_x = f32::MAX;
+	    let min_y = f32::MAX;
+	    if let Ok(transform) = point {
+		let current_pos = transform.translation
+		if current_pos.x > min_x {
+		   min_x = 
+		}
+		//   calulate all four points to get minimum bounding box
+	    }
+	}
+
+    }
   
 }
 
-
 // Bounding Box needs to be calculated every frame for all non moving entitys
-
 
 fn line_movement(
     point_query: Query<&Transform, With<Point>>,
@@ -202,6 +234,7 @@ fn point_movement(mut point_query: Query<(&mut Transform, &Point, &Direction, &m
 
 // Give MassPointgroup a list of 2d vectors for an object
 fn startup_sequence(mut commands: Commands) {
+
     commands.spawn(Camera2dBundle::default());
 
     let trapezoid = vec![
@@ -239,7 +272,7 @@ fn startup_sequence(mut commands: Commands) {
 		     for point in points {
 			 parent.spawn((point, Point));
 		     }
-	parent.spawn()
+	parent.spawn(bounding_box)
 	// Make a bounding box here
     });
 
