@@ -159,7 +159,38 @@ impl utility {
 // The line is the parent and the points are the children
 // Query children in the line query
 
-fn minimum_bounding_box(point_query: Query<&Transform, With<Point>>, time: Res<Time>) {}
+fn minimum_bounding_box(
+    point_query: Query<&Transform, With<Point>>,
+    mut line_query: Query<(&mut Path, &Children), With<Group>>,
+    time: Res<Time>,
+) {
+    let mut maxX: f32 = 0.0;
+    let mut minX: f32 = 100.0;
+    let mut maxY: f32 = 0.0;
+    let mut minY: f32 = 100.0;
+    for transform in point_query.iter() {
+        let position = transform.translation;
+        // Update minimum and maximum X and Y values
+        if position.x < minX {
+            minX = position.x;
+        }
+        if position.y < minY {
+            minY = position.y;
+        }
+        if position.x > maxX {
+            maxX = position.x;
+        }
+        if position.y > maxY {
+            maxY = position.y;
+        }
+
+        // ...
+    }
+    let mut path_builder = PathBuilder::new();
+
+    // Create new Path component with four points representing the bounding box corners
+    // ...
+}
 
 // Bounding Box needs to be calculated every frame for all non moving entitys
 
