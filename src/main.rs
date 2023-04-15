@@ -1,10 +1,10 @@
 use bevy::{
     prelude::{shape::Circle, *},
-    transform::{commands, self},
+    transform::{self, commands},
 };
 
-use rand::prelude::*;
 use bevy_prototype_lyon::prelude::*;
+use rand::prelude::*;
 
 // For each point spawn a shape bundle, color, and stroke maybe
 
@@ -16,6 +16,8 @@ fn main() {
         .add_startup_system(startup_sequence)
         .add_system(point_movement)
         .add_system(line_movement)
+        .add_system(find_center_point)
+        .add_system(camera_follow_system)
         .run();
 }
 
@@ -47,6 +49,12 @@ struct Force(Vec2);
 #[derive(Component)]
 struct DampingFactor(i32);
 
+#[derive(Component)]
+struct Car;
+
+#[derive(Component)]
+struct CenterPoint(Vec2);
+
 // We have a object this object is a entity with the name Car
 // The car has a buck of points associated with it that has owners
 
@@ -58,9 +66,8 @@ struct Spring {
     // Dampang Factor
 }
 #[derive(Component)]
-struct Square{
+struct Square {
     points: Vec<Vec2>,
-    
 }
 
 // We have a BoundingBox that has its own shape
@@ -68,27 +75,25 @@ struct Square{
 // And stroke color
 #[derive(Bundle)]
 struct BoundingBoxBundle {
-    bounding_square: Square,
-    stroke: Stroke,
-    // shape: ShapeBundle,
+    shepe: ShapeBundle,
 }
 
 impl Default for Square {
     fn default() -> Self {
-	Square { points: vec![
-	    Vec2::new(0., 0.),
-	    Vec2::new(0., 1.),
-	    Vec2::new(1., 1.),
-	    Vec2::new(1., 0.),
-	    Vec2::new(0., 0.),
-	    ]
-	}
+        Square {
+            points: vec![
+                Vec2::new(0., 0.),
+                Vec2::new(0., 1.),
+                Vec2::new(1., 1.),
+                Vec2::new(1., 0.),
+                Vec2::new(0., 0.),
+            ],
+        }
     }
 }
 
 #[derive(Bundle)]
-struct MassPointGroup {
-}
+struct utility {}
 
 #[derive(Component)]
 struct Group;
@@ -107,30 +112,30 @@ struct PointMassBundle {
     color: Fill,
 }
 
-impl MassPointGroup {
+impl utility {
     fn new_group(list_of_points: &Vec<Vec2>) -> Vec<PointMassBundle> {
         let mut point_masses = Vec::new();
 
         for point in list_of_points {
-	    // giving the point a center makes the transform.translation glitchy
+            // giving the point a center makes the transform.translation glitchy
             let circle = shapes::Circle {
                 radius: 6.,
-		..default()
+                ..default()
             };
 
             point_masses.push(PointMassBundle {
                 mass: Mass(1),
                 position: Position(point.clone()),
-// random::<f32>(),random::<f32>()
+                // random::<f32>(),random::<f32>()
                 direction: Direction(Vec2::new(0., -1.)),
                 shape: ShapeBundle {
                     path: GeometryBuilder::build_as(&circle),
-		    transform: Transform::from_xyz(point.clone().x, point.clone().y, 0.),
+                    transform: Transform::from_xyz(point.clone().x, point.clone().y, 0.),
                     ..default()
                 },
                 // in the future get the name from MassPointgroup
                 color: Fill::color(Color::WHITE),
-		speed: Speed(0.),
+                speed: Speed(0.),
             })
         }
 
@@ -154,6 +159,9 @@ impl MassPointGroup {
             ..default()
         }
     }
+    fn new_bounnding_box() -> ShapeBundle {
+        ShapeBundle { ..default() }
+    }
 }
 
 // The line is the parent and the points are the children
@@ -162,39 +170,63 @@ impl MassPointGroup {
 fn minimum_bounding_box(
     point_query: Query<&Transform, With<Point>>,
     mut line_query: Query<(&mut Path, &Children), With<Group>>,
-    time: Res<Time>
-)
-{
+    time: Res<Time>,
+) {
+    let mut path_builder = PathBuilder::new();
+    let mut maxX: f32 = 0.0;
+    let mut minX: f32 = 100.0;
+    let mut maxY: f32 = 0.0;
+    let mut minY: f32 = 100.0;
+    for transform in point_query.iter() {
+        let position = transform.translation;
+        // Update minimum and maximum X and Y values
+        if position.x < minX {
+            minX = position.x;
+        }
+        if position.y < minY {
+            minY = position.y;
+        }
+        if position.x > maxX {
+            maxX = position.x;
+        }
+        if position.y > maxY {
+            maxY = position.y;
+        }
 
+        // ...
+    }
+
+    // Create new Path component with four points representing the bounding box corners
+    // ...
 }
 
-
 // Bounding Box needs to be calculated every frame for all non moving entitys
-
 
 fn line_movement(
     point_query: Query<&Transform, With<Point>>,
     mut line_query: Query<(&mut Path, &Children), With<Group>>,
-    time: Res<Time>
-)
-{
+    time: Res<Time>,
+) {
     for (mut path, children) in line_query.iter_mut() {
-	let mut path_builder = PathBuilder::new();
-	for &child  in children.iter() {
-	    let point = point_query.get(child);
-	    if let Ok(transform) = point {
-		path_builder.line_to(transform.translation.truncate());
-	    }
-	}
-	path_builder.close();
-	*path = path_builder.build();
+        let mut path_builder = PathBuilder::new();
+        for &child in children.iter() {
+            let point = point_query.get(child);
+            if let Ok(transform) = point {
+                path_builder.line_to(transform.translation.truncate());
+            }
+        }
+        path_builder.close();
+        *path = path_builder.build();
     }
 }
 
-fn point_movement(mut point_query: Query<(&mut Transform, &Point, &Direction, &mut Speed)>, time: Res<Time>) {
+fn point_movement(
+    mut point_query: Query<(&mut Transform, &Point, &Direction, &mut Speed)>,
+    time: Res<Time>,
+) {
     for (mut transform, point, velocity, mut speed) in point_query.iter_mut() {
         let direction = Vec3::new(velocity.0.x, velocity.0.y, 0.);
-	speed.0 += GRAVITY;
+        speed.0 += GRAVITY;
         transform.translation += direction.normalize() * speed.0 * time.delta_seconds();
     }
 }
@@ -223,31 +255,70 @@ fn startup_sequence(mut commands: Commands) {
         Vec2::new(0., 0.),
     ];
 
-    let points = MassPointGroup::new_group(&car);
-    let paths = MassPointGroup::draw_paths(&car);
+    let points = utility::new_group(&car);
+    let paths = utility::draw_paths(&car);
+    let bounding_box = utility::new_bounnding_box();
 
-    let square_points = MassPointGroup::new_group(&trapezoid);
-    let square_lines  = MassPointGroup::draw_paths(&trapezoid);
+    let square_points = utility::new_group(&trapezoid);
+    let square_lines = utility::draw_paths(&trapezoid);
 
-    commands.spawn((
-        paths,
-        Stroke::new(Color::WHITE, 4.0),
-	Group
-    )).with_children(|parent| {
-		     for point in points {
-			 parent.spawn((point, Point));
-		     }
-    });
+    commands
+        .spawn((
+            paths,
+            Stroke::new(Color::WHITE, 4.0),
+            Group,
+            CenterPoint(Vec2::new(0.0, 0.0)),
+        ))
+        .with_children(|parent| {
+            for point in points {
+                parent.spawn((point, Point));
+            }
+            // Make a bounding box here
+        });
 
     // Parent is the lines, child is the bounding box, and children are all the points
-    commands.spawn((
-        square_lines,
-        Stroke::new(Color::WHITE, 4.0),
-	Group,
-    )).with_children(|parent| {
-		     for point in square_points {
-			 parent.spawn((point, Point));
-		     }
+    commands
+        .spawn((square_lines, Stroke::new(Color::WHITE, 4.0), Group))
+        .with_children(|parent| {
+            for point in square_points {
+                parent.spawn((point, Point));
+            }
+        });
+}
 
-    });
+fn camera_follow_system(
+    centerpoint_query: Query<&CenterPoint>,
+    mut camera_query: Query<&mut Transform, With<Camera>>,
+) {
+    if let Ok(centerpoint_transform) = centerpoint_query.get_single() {
+        if let Ok(mut camera_transform) = camera_query.get_single_mut() {
+            camera_transform.translation.x = centerpoint_transform.0.x;
+            camera_transform.translation.y = centerpoint_transform.0.y;
+        }
+    }
+}
+
+fn find_center_point(
+    point_query: Query<&Transform, With<Point>>,
+    mut line_query: Query<(&Children), With<CenterPoint>>,
+    mut center_query: Query<&mut CenterPoint>,
+) {
+    let mut count: f32 = 0.0;
+    let mut sum_x: f32 = 0.0;
+    let mut sum_y: f32 = 0.0;
+    for (children) in line_query.iter_mut() {
+        for &child in children.iter() {
+            if let Ok(transform) = point_query.get(child) {
+                count = count + 1.0;
+                sum_x += transform.translation.x;
+                sum_y += transform.translation.y;
+            }
+        }
+    }
+    let centerpoint_x: f32 = sum_x / count;
+    let centerpoint_y: f32 = sum_y / count;
+    if let Ok(mut centerpoint) = center_query.get_single_mut() {
+        centerpoint.0 = Vec2::new(centerpoint_x, centerpoint_y);
+        //println!("centerpoint: ({},{})", centerpoint_x, centerpoint_y);
+    }
 }
