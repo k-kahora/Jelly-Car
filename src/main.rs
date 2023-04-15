@@ -199,6 +199,10 @@ fn update_bounding_box(
 
 }
 
+// Check that the boxes collide if they collide then we need to send an event to do the raycast
+// Query for the group and grab it's minibox
+// Query for anoth group and grab it's minbox
+
 fn minimum_bounding_box(
     point_query: Query<&Transform, With<Point>>,
     mut group_query: Query<(&mut Children, &mut MiniBox), With<Group>>,    time: Res<Time>
