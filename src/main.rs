@@ -50,10 +50,7 @@ struct Force(Vec2);
 struct DampingFactor(i32);
 
 #[derive(Component)]
-struct Car;
-
-#[derive(Component)]
-struct CenterPoint(Vec2);
+struct Car(Vec2);
 
 // We have a object this object is a entity with the name Car
 // The car has a buck of points associated with it that has owners
@@ -267,7 +264,7 @@ fn startup_sequence(mut commands: Commands) {
             paths,
             Stroke::new(Color::WHITE, 4.0),
             Group,
-            CenterPoint(Vec2::new(0.0, 0.0)),
+            Car(Vec2::new(0.0, 0.0)),
         ))
         .with_children(|parent| {
             for point in points {
@@ -287,21 +284,21 @@ fn startup_sequence(mut commands: Commands) {
 }
 
 fn camera_follow_system(
-    centerpoint_query: Query<&CenterPoint>,
+    car_query: Query<&Car>,
     mut camera_query: Query<&mut Transform, With<Camera>>,
 ) {
-    if let Ok(centerpoint_transform) = centerpoint_query.get_single() {
+    if let Ok(car_transform) = car_query.get_single() {
         if let Ok(mut camera_transform) = camera_query.get_single_mut() {
-            camera_transform.translation.x = centerpoint_transform.0.x;
-            camera_transform.translation.y = centerpoint_transform.0.y;
+            camera_transform.translation.x = car_transform.0.x;
+            camera_transform.translation.y = car_transform.0.y;
         }
     }
 }
 
 fn find_center_point(
     point_query: Query<&Transform, With<Point>>,
-    mut line_query: Query<(&Children), With<CenterPoint>>,
-    mut center_query: Query<&mut CenterPoint>,
+    mut line_query: Query<(&Children), With<Car>>,
+    mut center_query: Query<&mut Car>,
 ) {
     let mut count: f32 = 0.0;
     let mut sum_x: f32 = 0.0;
