@@ -72,14 +72,11 @@ struct Square{
 // We have a BoundingBox that has its own shape
 // position
 // And stroke color
-#[derive(Component)]
-struct MiniPoints(Vec);
 
 #[derive(Bundle)]
 struct BoundingBoxBundle {
-    minimum_points: MiniPoints,
     shape: ShapeBundle,
-    name: BoundingBox,
+    stroke: Stroke,
 }
 
 impl Default for Square {
@@ -168,7 +165,7 @@ impl utility {
 	    shape: ShapeBundle {
 		..default()
 	    },
-	    name: BoundingBox
+            stroke: Stroke::new(Color::YELLOW, 4.0),
 	}
     }
 }
@@ -217,10 +214,10 @@ fn minimum_bounding_box(
 	}
 	
 
-	let array:Vec<Entity> = children.iter();
 
-	for item in array {
-	    let bound_box = bounding_box_query.get(item);
+	for item in children.iter() {
+	    let bound_box = bounding_box_query.get_mut(*item);
+
 
 	    let mut path_builder = PathBuilder::new();
 
@@ -229,14 +226,14 @@ fn minimum_bounding_box(
 	    path_builder.line_to(Vec2::new(maxX, maxY));
 	    path_builder.line_to(Vec2::new(maxX, minY));
 
-	    if let Ok(bound) = bound_box {
-	    }
 	    path_builder.close();
 	    let path = path_builder.build();
+	    println!("{:?}", path);
+
+	    if let Ok(mut bound) = bound_box {
+		*bound = path;
+	    }
 	}
-
-
-
 	// let bounding_box = bounding_box_query.get_mut(children.it);
 	// if let Ok(mut path) = bounding_box {
 	//     *path = path_builder.build();
