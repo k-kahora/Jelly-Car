@@ -286,9 +286,10 @@ fn startup_sequence(mut commands: Commands) {
 }
 
 fn camera_follow_system(
-    car_query: Query<&Transform, With<Car>>,
+    centerpoint_query: Query<&CenterPoint>,
     mut camera_query: Query<&mut Transform, With<Camera>>,
 ) {
+    if let Ok(centerpoint_transform) = centerpoint_query.single() {}
 }
 
 fn find_center_point(
@@ -312,6 +313,6 @@ fn find_center_point(
     let centerpoint_y: f32 = sum_y / count;
     if let Ok(mut centerpoint) = center_query.get_single_mut() {
         centerpoint.0 = Vec2::new(centerpoint_x, centerpoint_y);
-        println!("centerpoint: ({},{})", centerpoint_x, centerpoint_y);
+        //println!("centerpoint: ({},{})", centerpoint_x, centerpoint_y);
     }
 }
