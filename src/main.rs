@@ -126,6 +126,9 @@ struct utility {}
 struct Group;
 
 #[derive(Component)]
+struct Anchored;
+
+#[derive(Component)]
 struct Velocity(Vec2);
 
 #[derive(Bundle)]
@@ -364,7 +367,7 @@ fn line_movement(
 }
 
 fn point_movement(
-    mut point_query: Query<(&mut Transform, &mut Force, &Mass, &Point, &Direction, &mut Velocity)>,
+    mut point_query: Query<(&mut Transform, &mut Force, &Mass, &Point, &Direction, &mut Velocity), Without<Anchored>>,
     time: Res<Time>,
 ) {
     for (mut transform,mut force, mass, point, direction, mut velocity) in point_query.iter_mut() {
