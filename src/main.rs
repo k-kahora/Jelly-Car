@@ -242,8 +242,10 @@ fn update_springs(
 	let spring_force = ( b_minus_a_norm - rest_length.0) * stiff.0;
 	// Veclocity diffrence
 	let vel_diff = b_velocity - a_velocity;
-	let vel_diff_three = Vec3::new(vel_diff.x, vel_diff.y, 0.)
+	let vel_diff_three = Vec3::new(vel_diff.x, vel_diff.y, 0.);
 	let vel_diff_b_minus_a_norm_dot = b_minus_a_norm.dot(vel_diff_three);
+	let vel_diff_b_minus_a_norm_dot_damp = b_minus_a_norm.dot(vel_diff_three) * damp.0;
+	let total_spring_force = spring_force + vel_diff_b_minus_a_norm_dot_damp;
     }
     
 
