@@ -25,6 +25,8 @@ fn main() {
 
 pub const POINT_SPEED: f32 = 200.0;
 pub const GRAVITY: f32 = 9.;
+pub const STIFFNESS: f32 = 9.;
+pub const DAMPING_FACTOR: f32 = 9.;
 
 #[derive(Component)]
 struct Position(Vec2);
@@ -48,8 +50,6 @@ struct Mass(i32);
 #[derive(Component)]
 struct Force(Vec2);
 
-#[derive(Component)]
-struct DampingFactor(i32);
 
 #[derive(Component)]
 struct Car(Vec2);
@@ -57,13 +57,34 @@ struct Car(Vec2);
 // We have a object this object is a entity with the name Car
 // The car has a buck of points associated with it that has owners
 
+// A spring is a entity
+// With A, and B as th start and end-point between
+// It also has a 
+#[derive(Component)]
+struct Stiffness(f32);
+
+#[derive(Component)]
+struct DampingFactor(f32);
+
+#[derive(Component)]
+struct RestLength(f32);
+
+#[derive(Component)]
+struct PointA(Entity);
+
 #[derive(Bundle)]
-struct Spring {
+struct SpringBundle {
+    restLength: RestLength,
+    dampingFactor: DampingFactor,
+    stiffness: Stiffness,
+    point_a: PointA,
+    point_b: PointA,
     // Two points
     // Stiffness
     // Rest length
     // Dampang Factor
 }
+
 #[derive(Component)]
 struct Square {
     points: Vec<Vec2>,
@@ -141,6 +162,22 @@ impl utility {
         point_masses
     }
 
+    // generate a springs based on the points
+    fn make_springs(list_of_points: &Vec<Entity>) {
+	let mut springs: Vec<SpringBundle> = Vec::new();
+	for i in 0..list_of_points.len() - 1 {
+	    let current = list_of_points[i];
+	    let next_val = list_of_points[i + 1];
+	    let spring = SpringBundle {
+		restLength: RestLength(1.),
+		dampingFactor: DampingFactor(DAMPING_FACTOR),
+		stiffness: Stiffness(STIFFNESS),
+		point_a: PointA(current),
+		point_b: PointA(next_val)
+	    };
+	    springs.push(spring);
+	}
+    }
     fn draw_paths(list_of_points: &Vec<Vec2>) -> ShapeBundle {
         let mut path_builder = PathBuilder::new();
         path_builder.move_to(list_of_points[0]);
@@ -234,14 +271,6 @@ fn point_movement(
 fn startup_sequence(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 
-    let trapezoid = vec![
-        Vec2::new(-200., 20.),
-        Vec2::new(-100., 20.),
-        Vec2::new(-100., 120.),
-        Vec2::new(-200., 220.),
-        Vec2::new(-200., 20.),
-    ];
-
     let car = vec![
         Vec2::new(0., 0.),
         Vec2::new(200., 0.),
@@ -257,9 +286,7 @@ fn startup_sequence(mut commands: Commands) {
     let points = utility::new_group(&car);
     let paths = utility::draw_paths(&car);
     let bounding_box = utility::new_bounnding_box();
-
-    let square_points = utility::new_group(&trapezoid);
-    let square_lines = utility::draw_paths(&trapezoid);
+    let mut entitys = Vec::new();
 
     commands
         .spawn((
@@ -270,19 +297,16 @@ fn startup_sequence(mut commands: Commands) {
         ))
         .with_children(|parent| {
             for point in points {
-                parent.spawn((point, Point));
+                let id = parent.spawn((point, Point)).id();
+		entitys.push(id);
             }
             // Make a bounding box here
         });
 
+    let springs = utility::make_springs(&entitys);
+
+
     // Parent is the lines, child is the bounding box, and children are all the points
-    commands
-        .spawn((square_lines, Stroke::new(Color::WHITE, 4.0), Group))
-        .with_children(|parent| {
-            for point in square_points {
-                parent.spawn((point, Point));
-            }
-        });
 }
 
 fn camera_follow_system(
