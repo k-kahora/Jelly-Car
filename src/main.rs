@@ -219,18 +219,31 @@ fn update_springs(
     // Step 1: Query all sprinps
     // Step 2: Get a query for the two points on the spring, we need theri position
     mut spring_query: Query<(&mut RestLength, &mut Once, &Stiffness, &DampingFactor, &PointAandB)>,
-    point_query: Query<&Transform, With<Point>>
+    point_query: Query<(&Transform, &mut Velocity), With<Point>>
 ) {
     
     for (mut rest_length, mut once, stiff, damp, a_b) in spring_query.iter_mut() {
+	let a = point_query.get(a_b.0[0]).unwrap();
+	let b = point_query.get(a_b.0[1]).unwrap();
+	let a_translation = a.0.translation;
+	let a_velocity = a.1.0;
+	let b_translation = b.0.translation;
+	let b_velocity = b.1.0;
+
 	if once.0 {
 	    once.0 = false;
-	    let a = point_query.get(a_b.0[0]).unwrap();
-	    let b = point_query.get(a_b.0[1]).unwrap();
 
-	    rest_length.0 = a.translation.distance(b.translation);
+	    rest_length.0 = a_translation.distance(b_translation);
 	    println!("Rest Length is {}", rest_length.0);
 	}
+	// Hooks law 
+	let b_minus_a_norm = (b_translation - a_translation).normalize();
+	// normalized direction vector form A to B
+	let spring_force = ( b_minus_a_norm - rest_length.0) * stiff.0;
+	// Veclocity diffrence
+	let vel_diff = b_velocity - a_velocity;
+	let vel_diff_three = Vec3::new(vel_diff.x, vel_diff.y, 0.)
+	let vel_diff_b_minus_a_norm_dot = b_minus_a_norm.dot(vel_diff_three);
     }
     
 
