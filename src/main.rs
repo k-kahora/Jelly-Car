@@ -271,72 +271,81 @@ impl utility {
 }
 
 // This needs to first check for a collisioin between minibox
+// We need the point and the list of edges
+// fn is_inside(point_a: Vec<&Entity>, point_b: Vec<&Entity>, query: Query<&Transform, With<Point>>) {
+    
+// 		println!("collision")
+// }
+
 fn collision_detection(
-    mini_box_query: Query<&MiniBox, With<Group>>,
+    mini_box_query: Query<(&MiniBox, &Children), With<Group>>,
+    point_query: Query<&Transform, With<Point>>
 )
 {
-  // # are the sides of one rectangle touching the other?
-
-    // return r1x + r1w >= r2x and \   # r1 right edge past r2 left
-        // r1x <= r2x + r2w and \  # r1 left edge past r2 right
-        // r1y + r1h >= r2y and \   # r1 top edge past r2 bottom
-        // r1y <= r2y + r2h    # r1 bottom edge past r2 top
-// def overlap(rec1, rec2):
-//   if (rec2.x2 > rec1.x1 and rec2.x2 < rec1.x2) or \
-//      (rec2.x1 > rec1.x1 and rec2.x1 < rec1.x2):
-//     x_match = True
-//   else:
-//     x_match = False
-//   if (rec2.y2 > rec1.y1 and rec2.y2 < rec1.y2) or \
-//      (rec2.y1 > rec1.y1 and rec2.y1 < rec1.y2):
-//     y_match = True
-//   else:
-//     y_match = False
-//   if x_match and y_match:
-//     return True
-//   else:
-//     return False
-    let array: Vec<&MiniBox> = mini_box_query.iter().collect();
+    let array: Vec<(&MiniBox, &Children)> = mini_box_query.iter().collect();
 ;
     for i in 0..array.len() - 1 {
 
-
-	println!("length: {}", array.len());
-
-	println!("BoxA: {:?} {:?}", array[i].p1, array[i].p2);
+	// println!("BoxA: {:?} {:?}", array[i].p1, array[i].p2);
 	for j in (i + 1)..array.len() - 1 {
-	   println!("BoxB: {:?} {:?}", array[j].p1, array[j].p2);
-	   let box_a_1 = array[i].p1;
-	   let box_a_2 = array[i].p2;
-	   let box_b_1 = array[j].p1;
-	   let box_b_2 = array[j].p2;
+	   // println!("BoxB: {:?} {:?}", array[j].p1, array[j].p2);
+	   let box_a_1 = array[i].0.p1;
+	   let box_a_2 = array[i].0.p2;
+	   let box_b_1 = array[j].0.p1;
+	   let box_b_2 = array[j].0.p2;
 	   let mut x_match = false;
 	   let mut y_match = false;
 
 	    if ((box_a_1.x > box_b_1.x) && (box_a_1.x < box_b_2.x))
 	        || ((box_a_2.x > box_b_1.x) && (box_a_1.x < box_a_2.x))
 	    {
-		println!("x match");
 		x_match = true
 	    }
 	    if ((box_a_1.y > box_b_1.y) && (box_a_1.y < box_b_2.y))
 	        || ((box_a_2.y > box_b_1.y) && (box_a_2.y < box_b_2.y))
 	    {
-		println!("y match");
 		y_match = true
 	    }
 
+	    // We need all the children of each point
 	    if x_match && y_match {
-		println!("collision")
+		// let a_points:Vec<&Entity> = array[i].1.iter().collect();
+		// let b_points:Vec<&Entity> = array[j].1.iter().collect();
+
+		let mut count = 0;
+
+		for entity in array[i].1.iter() {
+		    let point = point_query.get(*entity);
+		    let mut xp: f32 = 0.;
+		    let mut yp: f32 = 0.;
+		    if let Ok(position) = point {
+			xp = position.translation.x;
+			yp = position.translation.y;
+		    }
+		    // Edges
+
+		    let edges: Vec<&Entity>= array[j].1.iter().collect();
+		    for i in 0..edges.len() - 1 {
+			
+			let edge1 = point_query.get(*edges[i]).unwrap();
+			let edge2 = point_query.get(*edges[j]).unwrap();
+
+			let x1 = edge1.translation.x;
+			let y1= edge1.translation.y;
+			let x2 = edge2.translation.x;
+			let y2 = edge2.translation.y;
+
+			if (yp < y1) != (yp < y2) && xp < x1 + ((yp-y1)/(y2-y1)) * (x2-x1) {
+			    count += 1
+			}
+
+			if count % 2 == 1 {
+			    println!("collided")
+			}
+		    }
+		}
 	    }
-
-	   
-
-	   
-
-	    
 	}
-	
     }
 
 }
