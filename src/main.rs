@@ -3,6 +3,10 @@ use bevy::{
     transform::{self, commands},
 };
 
+use bevy_mod_raycast::{
+    DefaultRaycastingPlugin, Intersection, RaycastMesh, RaycastMethod, RaycastSource, RaycastSystem,
+};
+
 use bevy::window::PrimaryWindow;
 use bevy_prototype_lyon::prelude::*;
 use rand::prelude::*;
@@ -20,6 +24,8 @@ fn main() {
         .add_system(find_center_point)
         .add_system(camera_follow_system)
         .add_system(confine_movement)
+        .add_system(update_raycast_with_cursor)
+        .add_system(intersection)
         .run();
 }
 
@@ -53,6 +59,17 @@ struct DampingFactor(i32);
 
 #[derive(Component)]
 struct Car(Vec2);
+
+// marker struct for obstacles
+#[derive(Component)]
+struct obstacle;
+
+// Marker struct for the intersection point
+#[derive(Component)]
+struct PathObstaclePoint;
+
+#[derive(Clone, Reflect)]
+struct MyRaycastSet;
 
 // We have a object this object is a entity with the name Car
 // The car has a buck of points associated with it that has owners
@@ -324,14 +341,12 @@ fn find_center_point(
 
 fn confine_movement(
     mut point_query: Query<(&mut Speed, &mut Transform), With<Point>>,
-    mut line_query: Query<(&Children), With<Car>>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
+    mut line_query: Query<(&Children), With<Car>>, //currently sets boundary for car, can be changed to Group
 ) {
     for (children) in line_query.iter_mut() {
         for &child in children.iter() {
             let mut point = point_query.get_mut(child);
             if let Ok((mut speed_transform, mut point_transform)) = point {
-                let window = window_query.get_single().unwrap();
                 let min_y: f32 = -200.0;
                 let mut translation = point_transform.translation;
                 if translation.y < min_y {
@@ -341,5 +356,32 @@ fn confine_movement(
                 point_transform.translation = translation;
             }
         }
+    }
+}
+
+// Update our `RaycastSource` with the current cursor position every frame.
+fn update_raycast_with_cursor(
+    mut cursor: EventReader<CursorMoved>,
+    mut query: Query<&mut RaycastSource<MyRaycastSet>>,
+) {
+    // Grab the most recent cursor event if it exists:
+    let cursor_position = match cursor.iter().last() {
+        Some(cursor_moved) => cursor_moved.position,
+        None => return,
+    };
+
+    for mut pick_source in &mut query {
+        pick_source.cast_method = RaycastMethod::Screenspace(cursor_position);
+    }
+}
+
+/// Report intersections
+fn intersection(query: Query<&Intersection<MyRaycastSet>>) {
+    for intersection in &query {
+        info!(
+            "Distance {:?}, Position {:?}",
+            intersection.distance(),
+            intersection.position()
+        );
     }
 }
