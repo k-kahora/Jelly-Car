@@ -279,7 +279,8 @@ impl utility {
 
 fn collision_detection(
     mini_box_query: Query<(&MiniBox, &Children), With<Group>>,
-    point_query: Query<&Transform, With<Point>>
+    mut point_query_mut: Query<&mut Transform, With<Point>>,
+    point_query: Query<& Transform, With<Point>>
 )
 {
     let array: Vec<(&MiniBox, &Children)> = mini_box_query.iter().collect();
@@ -315,6 +316,7 @@ fn collision_detection(
 		let mut count = 0;
 
 		for entity in array[i].1.iter() {
+		    let point_mut = point_query_mut.get_mut(*entity);
 		    let point = point_query.get(*entity);
 		    let mut xp: f32 = 0.;
 		    let mut yp: f32 = 0.;
@@ -325,6 +327,10 @@ fn collision_detection(
 		    // Edges
 
 		    let edges: Vec<&Entity>= array[j].1.iter().collect();
+		    let mut min: f32 = 0.;
+		    let x_inter = 0.;
+		    let y_inter = 0.;
+		    let mut vec_min = Vec2::new(0., 0.);
 		    for i in 0..edges.len() - 1 {
 			
 			let edge1 = point_query.get(*edges[i]).unwrap();
@@ -335,13 +341,37 @@ fn collision_detection(
 			let x2 = edge2.translation.x;
 			let y2 = edge2.translation.y;
 
+			let m = (y2-y1) / (x2 - x1);
+			let b = y1 - m * x1;
+			let mp = -1. / m;
+
+			let bp = yp - mp * xp;
+
+			let x_inter = (bp - b) / (m - mp);
+			let y_inter = m * x_inter + b;
+
+			// Distance form point to edge
+			let dist = Vec2::new(xp, yp).distance(Vec2::new(x_inter, y_inter));
+			if dist < min {
+			    min = dist;
+			    vec_min = Vec2::new(x_inter, y_inter);
+			}
+
+			println!("{} {}", x_inter, y_inter);
+			   
+
 			if (yp < y1) != (yp < y2) && xp < x1 + ((yp-y1)/(y2-y1)) * (x2-x1) {
 			    count += 1
 			}
 
-			if count % 2 == 1 {
-			    println!("collided")
-			}
+		    }
+		    if count % 2 == 1 {
+			// println!("collided");
+			// let mut unwrap_point = point_mut.unwrap();
+			// unwrap_point.translation.x = vec_min.x;
+			// unwrap_point.translation.y = vec_min.y;
+
+			   
 		    }
 		}
 	    }
@@ -501,9 +531,9 @@ fn startup_sequence(mut commands: Commands) {
 
     let rect = vec![
         Vec2::new(0., -100.),
-        Vec2::new(50., -100.),
-        Vec2::new(50., -4000.),
-        Vec2::new(0., -4000.),
+        Vec2::new(50., -120.),
+        Vec2::new(60., -150.),
+        Vec2::new(20., -130.),
     ];
 
     utility::spawn_shape(&mut commands, &rect, true);
