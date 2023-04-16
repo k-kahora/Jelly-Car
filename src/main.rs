@@ -191,6 +191,41 @@ impl utility {
 	}
 	springs
     }
+
+    fn spawn_shape( mut commands: Commands, list_of_points: &Vec<Vec2>) {
+	
+	let points = utility::new_group(&list_of_points);
+	let paths = utility::draw_paths(&list_of_points);
+	let bounding_box = utility::new_bounnding_box();
+	let default_minibox = vec![Vec2::new(0., 0.),Vec2::new(0., 0.),Vec2::new(0., 0.),Vec2::new(0., 0.)];
+	let mut entitys = Vec::new();
+
+	commands
+	    .spawn((
+		paths,
+		Stroke::new(Color::WHITE, 4.0),
+		Group,
+		MiniBox(default_minibox.clone()),
+		Car(Vec2::new(0.0, 0.0)),
+	    ))
+	    .with_children(|parent| {
+		for point in points {
+		    let id = parent.spawn((point, Point)).id();
+		    entitys.push(id);
+		}
+		// Make a bounding box here
+	    });
+
+	let springs = utility::make_springs(&entitys);
+	for spring in springs {
+	    commands.spawn(spring);
+	}
+
+
+
+
+    }
+
     fn draw_paths(list_of_points: &Vec<Vec2>) -> ShapeBundle {
         let mut path_builder = PathBuilder::new();
         path_builder.move_to(list_of_points[0]);
@@ -360,32 +395,34 @@ fn startup_sequence(mut commands: Commands) {
         Vec2::new(0., 0.),
     ];
 
-    let points = utility::new_group(&car);
-    let paths = utility::draw_paths(&car);
-    let bounding_box = utility::new_bounnding_box();
-    let default_minibox = vec![Vec2::new(0., 0.),Vec2::new(0., 0.),Vec2::new(0., 0.),Vec2::new(0., 0.)];
-    let mut entitys = Vec::new();
+    utility::spawn_shape(commands, &car);
 
-    commands
-        .spawn((
-            paths,
-            Stroke::new(Color::WHITE, 4.0),
-            Group,
-	    MiniBox(default_minibox.clone()),
-            Car(Vec2::new(0.0, 0.0)),
-        ))
-        .with_children(|parent| {
-            for point in points {
-                let id = parent.spawn((point, Point)).id();
-		entitys.push(id);
-            }
-            // Make a bounding box here
-        });
+    // let pointsk = utility::new_group(&car);
+    // let paths = utility::draw_paths(&car);
+    // let bounding_box = utility::new_bounnding_box();
+    // let default_minibox = vec![Vec2::new(0., 0.),Vec2::new(0., 0.),Vec2::new(0., 0.),Vec2::new(0., 0.)];
+    // let mut entitys = Vec::new();
 
-    let springs = utility::make_springs(&entitys);
-    for spring in springs {
-	commands.spawn(spring);
-    }
+    // commands
+    //     .spawn((
+    //         paths,
+    //         Stroke::new(Color::WHITE, 4.0),
+    //         Group,
+    // 	    MiniBox(default_minibox.clone()),
+    //         Car(Vec2::new(0.0, 0.0)),
+    //     ))
+    //     .with_children(|parent| {
+    //         for point in points {
+    //             let id = parent.spawn((point, Point)).id();
+    // 		entitys.push(id);
+    //         }
+    //         // Make a bounding box here
+    //     });
+
+    // let springs = utility::make_springs(&entitys);
+    // for spring in springs {
+    // 	commands.spawn(spring);
+    // }
 
 
     // Parent is the lines, child is the bounding box, and children are all the points
