@@ -20,6 +20,7 @@ fn main() {
         .add_system(find_center_point)
         .add_system(camera_follow_system)
         .add_system(confine_movement)
+        .add_system(update_springs)
         .run();
 }
 
@@ -217,12 +218,19 @@ fn update_springs(
     // Need to query for the position of aech point on the spring
     // Step 1: Query all sprinps
     // Step 2: Get a query for the two points on the spring, we need theri position
-    spring_query: Query<(&mut RestLength, &mut Once, &Stiffness, &DampingFactor, &PointAandB)>,
+    mut spring_query: Query<(&mut RestLength, &mut Once, &Stiffness, &DampingFactor, &PointAandB)>,
     point_query: Query<&Transform, With<Point>>
 ) {
     
     for (mut rest_length, mut once, stiff, damp, a_b) in spring_query.iter_mut() {
-	
+	if once.0 {
+	    once.0 = false;
+	    let a = point_query.get(a_b.0[0]).unwrap();
+	    let b = point_query.get(a_b.0[1]).unwrap();
+
+	    rest_length.0 = a.translation.distance(b.translation);
+	    println!("Rest Length is {}", rest_length.0);
+	}
     }
     
 
