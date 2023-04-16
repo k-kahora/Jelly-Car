@@ -1,6 +1,6 @@
 use bevy::{
     prelude::{shape::Circle, *},
-    transform::{self, commands},
+    transform::{self, commands}, utils::tracing::Instrument,
 };
 
 use bevy::window::PrimaryWindow;
@@ -279,16 +279,17 @@ impl utility {
 
 fn collision_detection(
     mini_box_query: Query<(&MiniBox, &Children), With<Group>>,
-    mut point_query_mut: Query<&mut Transform, With<Point>>,
-    point_query: Query<& Transform, With<Point>>
+    mut point_query: Query<&mut Transform, With<Point>>,
+    mut point_query_velocity: Query<&mut Velocity, With<Point>>,
 )
 {
     let array: Vec<(&MiniBox, &Children)> = mini_box_query.iter().collect();
 ;
+    // All groups
     for i in 0..array.len() - 1 {
 
 	// println!("BoxA: {:?} {:?}", array[i].p1, array[i].p2);
-	for j in (i + 1)..array.len() - 1 {
+	for j in (i + 1)..array.len() {
 	   // println!("BoxB: {:?} {:?}", array[j].p1, array[j].p2);
 	   let box_a_1 = array[i].0.p1;
 	   let box_a_2 = array[i].0.p2;
@@ -316,7 +317,6 @@ fn collision_detection(
 		let mut count = 0;
 
 		for entity in array[i].1.iter() {
-		    let point_mut = point_query_mut.get_mut(*entity);
 		    let point = point_query.get(*entity);
 		    let mut xp: f32 = 0.;
 		    let mut yp: f32 = 0.;
@@ -327,14 +327,14 @@ fn collision_detection(
 		    // Edges
 
 		    let edges: Vec<&Entity>= array[j].1.iter().collect();
-		    let mut min: f32 = 0.;
+		    let mut min: f32 = f32::MAX;
 		    let x_inter = 0.;
 		    let y_inter = 0.;
 		    let mut vec_min = Vec2::new(0., 0.);
-		    for i in 0..edges.len() - 1 {
+		    for k in 0..edges.len() - 1 {
 			
-			let edge1 = point_query.get(*edges[i]).unwrap();
-			let edge2 = point_query.get(*edges[j]).unwrap();
+			let edge1 = point_query.get(*edges[k]).unwrap();
+			let edge2 = point_query.get(*edges[k + 1]).unwrap();
 
 			let x1 = edge1.translation.x;
 			let y1= edge1.translation.y;
@@ -357,8 +357,6 @@ fn collision_detection(
 			    vec_min = Vec2::new(x_inter, y_inter);
 			}
 
-			println!("{} {}", x_inter, y_inter);
-			   
 
 			if (yp < y1) != (yp < y2) && xp < x1 + ((yp-y1)/(y2-y1)) * (x2-x1) {
 			    count += 1
@@ -366,12 +364,15 @@ fn collision_detection(
 
 		    }
 		    if count % 2 == 1 {
-			// println!("collided");
-			// let mut unwrap_point = point_mut.unwrap();
-			// unwrap_point.translation.x = vec_min.x;
-			// unwrap_point.translation.y = vec_min.y;
-
-			   
+			println!("{:?}", vec_min);
+			let mut unwrap_point = point_query.get_mut(*entity).unwrap();
+			let mut unwrap_point_vel = point_query_velocity.get_mut(*entity).unwrap();
+			unwrap_point.translation.x = vec_min.x;
+			unwrap_point.translation.y = vec_min.y;
+			let diff = (vec_min - unwrap_point.translation.truncate()).normalize();
+			let reflect = unwrap_point_vel.0 - 2.0 * (diff * unwrap_point_vel.0) * diff;
+			unwrap_point_vel.0 = reflect;
+			
 		    }
 		}
 	    }
@@ -531,21 +532,13 @@ fn startup_sequence(mut commands: Commands) {
 
     let rect = vec![
         Vec2::new(0., -100.),
-        Vec2::new(50., -120.),
-        Vec2::new(60., -150.),
+        Vec2::new(500., -120.),
+        Vec2::new(600., -150.),
         Vec2::new(20., -130.),
     ];
 
     utility::spawn_shape(&mut commands, &rect, true);
     
-    let rect = vec![
-        Vec2::new(-200., -100.),
-        Vec2::new(-250., -100.),
-        Vec2::new(-250., -150.),
-        Vec2::new(-200., -150.),
-    ];
-
-    utility::spawn_shape(&mut commands, &rect, true);
 
     // utility::spawn_shape(commands, &car, true);
 
