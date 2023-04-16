@@ -73,7 +73,7 @@ struct RestLength(f32);
 struct Once(bool);
 
 #[derive(Component)]
-struct PointA(Entity);
+struct PointAandB(Vec<Entity>);
 
 #[derive(Bundle)]
 struct SpringBundle {
@@ -81,8 +81,7 @@ struct SpringBundle {
     dampingFactor: DampingFactor,
     stiffness: Stiffness,
     once: Once,
-    point_a: PointA,
-    point_b: PointA,
+    point_a_and_b: PointAandB,
     // Two points
     // Stiffness
     // Rest length
@@ -182,8 +181,7 @@ impl utility {
 		once: Once(true),
 		dampingFactor: DampingFactor(DAMPING_FACTOR),
 		stiffness: Stiffness(STIFFNESS),
-		point_a: PointA(current),
-		point_b: PointA(next_val)
+		point_a_and_b: PointAandB(vec![current, next_val]),
 	    };
 	    springs.push(spring);
 	}
@@ -219,14 +217,15 @@ fn update_springs(
     // Need to query for the position of aech point on the spring
     // Step 1: Query all sprinps
     // Step 2: Get a query for the two points on the spring, we need theri position
-    spring_query: Query<(&mut RestLength, &Stiffness, &DampingFactor)>,
+    spring_query: Query<(&mut RestLength, &mut Once, &Stiffness, &DampingFactor, &PointAandB)>,
     point_query: Query<&Transform, With<Point>>
-    
-
-
-
 ) {
     
+    for (mut rest_length, mut once, stiff, damp, a_b) in spring_query.iter_mut() {
+	
+    }
+    
+
 }
 
 fn minimum_bounding_box(
