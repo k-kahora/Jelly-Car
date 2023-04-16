@@ -195,7 +195,7 @@ impl utility {
 	springs
     }
 
-    fn spawn_shape( mut commands: Commands, list_of_points: &Vec<Vec2>) {
+    fn spawn_shape( mut commands: Commands, list_of_points: &Vec<Vec2>, anchor: bool ) {
 	
 	let points = utility::new_group(&list_of_points);
 	let paths = utility::draw_paths(&list_of_points);
@@ -203,7 +203,7 @@ impl utility {
 	let default_minibox = vec![Vec2::new(0., 0.),Vec2::new(0., 0.),Vec2::new(0., 0.),Vec2::new(0., 0.)];
 	let mut entitys = Vec::new();
 
-	commands
+	let spawner = commands
 	    .spawn((
 		paths,
 		Stroke::new(Color::WHITE, 4.0),
@@ -213,11 +213,18 @@ impl utility {
 	    ))
 	    .with_children(|parent| {
 		for point in points {
-		    let id = parent.spawn((point, Point)).id();
+		    let mut spawn = parent.spawn((point, Point));
+		    if anchor {
+			spawn.insert(Anchored);
+		    }
+		    let id = spawn.id();
 		    entitys.push(id);
 		}
 		// Make a bounding box here
 	    });
+	// if anchor {
+	//     spawner.insert(Anchored);
+	// }
 
 	let springs = utility::make_springs(&entitys);
 	for spring in springs {
@@ -398,7 +405,18 @@ fn startup_sequence(mut commands: Commands) {
         Vec2::new(0., 0.),
     ];
 
-    utility::spawn_shape(commands, &car);
+    utility::spawn_shape(commands, &car, true);
+
+    let rect = vec![
+        Vec2::new(0., -200.),
+        Vec2::new(200., -200.),
+        Vec2::new(200., -250.),
+        Vec2::new(-200., -250.),
+        Vec2::new(-200., -0.),
+    ];
+
+
+    // utility::spawn_shape(commands, &car, true);
 
     // let pointsk = utility::new_group(&car);
     // let paths = utility::draw_paths(&car);
