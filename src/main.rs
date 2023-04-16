@@ -246,6 +246,10 @@ fn update_springs(
 	let vel_diff_b_minus_a_norm_dot = b_minus_a_norm.dot(vel_diff_three);
 	let vel_diff_b_minus_a_norm_dot_damp = b_minus_a_norm.dot(vel_diff_three) * damp.0;
 	let total_spring_force = spring_force + vel_diff_b_minus_a_norm_dot_damp;
+
+	// take total spring force and multiply it by the normalized dircetioin vector of the other point
+
+	println!("Spring Force {}", total_spring_force);
     }
     
 
