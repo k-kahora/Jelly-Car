@@ -17,6 +17,7 @@ fn main() {
         .add_startup_system(startup_sequence)
         .add_system(point_movement)
         .add_system(line_movement)
+        .add_system(collision_detection)
         .add_system(minimum_bounding_box)
         .add_system(find_center_point)
         .add_system(camera_follow_system)
@@ -280,14 +281,55 @@ fn collision_detection(
         // r1x <= r2x + r2w and \  # r1 left edge past r2 right
         // r1y + r1h >= r2y and \   # r1 top edge past r2 bottom
         // r1y <= r2y + r2h    # r1 bottom edge past r2 top
+// def overlap(rec1, rec2):
+//   if (rec2.x2 > rec1.x1 and rec2.x2 < rec1.x2) or \
+//      (rec2.x1 > rec1.x1 and rec2.x1 < rec1.x2):
+//     x_match = True
+//   else:
+//     x_match = False
+//   if (rec2.y2 > rec1.y1 and rec2.y2 < rec1.y2) or \
+//      (rec2.y1 > rec1.y1 and rec2.y1 < rec1.y2):
+//     y_match = True
+//   else:
+//     y_match = False
+//   if x_match and y_match:
+//     return True
+//   else:
+//     return False
     let array: Vec<&MiniBox> = mini_box_query.iter().collect();
 ;
     for i in 0..array.len() - 1 {
 
 
+	println!("length: {}", array.len());
+
+	println!("BoxA: {:?} {:?}", array[i].p1, array[i].p2);
 	for j in (i + 1)..array.len() - 1 {
-	   let box_a = array[i];
-	   let box_b = array[j];
+	   println!("BoxB: {:?} {:?}", array[j].p1, array[j].p2);
+	   let box_a_1 = array[i].p1;
+	   let box_a_2 = array[i].p2;
+	   let box_b_1 = array[j].p1;
+	   let box_b_2 = array[j].p2;
+	   let mut x_match = false;
+	   let mut y_match = false;
+
+	    if ((box_a_1.x > box_b_1.x) && (box_a_1.x < box_b_2.x))
+	        || ((box_a_2.x > box_b_1.x) && (box_a_1.x < box_a_2.x))
+	    {
+		println!("x match");
+		x_match = true
+	    }
+	    if ((box_a_1.y > box_b_1.y) && (box_a_1.y < box_b_2.y))
+	        || ((box_a_2.y > box_b_1.y) && (box_a_2.y < box_b_2.y))
+	    {
+		println!("y match");
+		y_match = true
+	    }
+
+	    if x_match && y_match {
+		println!("collision")
+	    }
+
 	   
 
 	   
@@ -388,7 +430,7 @@ fn minimum_bounding_box(
 	minibox.p4 = Vec2::new(maxX, minY);
 
 	// Print the minimum bounding box
-	println!("Point 1{:?}, Point 2{:?}", minibox.p1, minibox.p2);
+	// println!("Point 1{:?}, Point 2{:?}", minibox.p1, minibox.p2);
     }
 	
 }
@@ -433,16 +475,17 @@ fn point_movement(
 fn startup_sequence(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 
+    let x_shift = 10.0;
     let car = vec![
-        Vec2::new(0., 0.),
-        Vec2::new(200., 0.),
-        Vec2::new(200., 30.),
-        Vec2::new(170., 40.),
-        Vec2::new(140., 90.),
-        Vec2::new(60., 90.),
-        Vec2::new(30., 45.),
-        Vec2::new(0., 40.),
-        Vec2::new(0., 0.),
+        Vec2::new(0. + x_shift, 0.),
+        Vec2::new(200. + x_shift, 0.),
+        Vec2::new(200. + x_shift, 30.),
+        Vec2::new(170. + x_shift, 40.),
+        Vec2::new(140. + x_shift, 90.),
+        Vec2::new(60. + x_shift, 90.),
+        Vec2::new(30. + x_shift, 45.),
+        Vec2::new(0. + x_shift, 40.),
+        Vec2::new(0. + x_shift, 0.),
     ];
 
     utility::spawn_shape(&mut commands, &car, false);
@@ -455,8 +498,6 @@ fn startup_sequence(mut commands: Commands) {
     ];
 
     utility::spawn_shape(&mut commands, &rect, true);
-
-
     
     let rect = vec![
         Vec2::new(-200., -100.),
