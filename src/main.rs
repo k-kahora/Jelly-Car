@@ -416,6 +416,17 @@ fn startup_sequence(mut commands: Commands) {
 
     utility::spawn_shape(&mut commands, &rect, true);
 
+
+    
+    let rect = vec![
+        Vec2::new(-200., -100.),
+        Vec2::new(-250., -100.),
+        Vec2::new(-250., -150.),
+        Vec2::new(-200., -150.),
+    ];
+
+    utility::spawn_shape(&mut commands, &rect, true);
+
     // utility::spawn_shape(commands, &car, true);
 
     // let pointsk = utility::new_group(&car);
