@@ -367,20 +367,20 @@ fn find_center_point(
 }
 
 fn confine_movement(
-    mut point_query: Query<(&mut Speed, &mut Transform), With<Point>>,
+    mut point_query: Query<(&mut Velocity, &mut Transform), With<Point>>,
     mut line_query: Query<(&Children), With<Car>>,
     window_query: Query<&Window, With<PrimaryWindow>>,
 ) {
     for (children) in line_query.iter_mut() {
         for &child in children.iter() {
             let mut point = point_query.get_mut(child);
-            if let Ok((mut speed_transform, mut point_transform)) = point {
+            if let Ok((mut velocity_transform, mut point_transform)) = point {
                 let window = window_query.get_single().unwrap();
                 let min_y: f32 = -200.0;
                 let mut translation = point_transform.translation;
                 if translation.y < min_y {
                     translation.y = min_y;
-                    speed_transform.0 = 0.0;
+                    velocity_transform.0.y = 0.0;
                 }
                 point_transform.translation = translation;
             }
