@@ -70,6 +70,9 @@ struct DampingFactor(f32);
 struct RestLength(f32);
 
 #[derive(Component)]
+struct Once(bool);
+
+#[derive(Component)]
 struct PointA(Entity);
 
 #[derive(Bundle)]
@@ -77,6 +80,7 @@ struct SpringBundle {
     restLength: RestLength,
     dampingFactor: DampingFactor,
     stiffness: Stiffness,
+    once: Once,
     point_a: PointA,
     point_b: PointA,
     // Two points
@@ -168,13 +172,14 @@ impl utility {
     }
 
     // generate a springs based on the points
-    fn make_springs(list_of_points: &Vec<Entity>) {
+    fn make_springs(list_of_points: &Vec<Entity>) -> Vec<SpringBundle>{
 	let mut springs: Vec<SpringBundle> = Vec::new();
 	for i in 0..list_of_points.len() - 1 {
 	    let current = list_of_points[i];
 	    let next_val = list_of_points[i + 1];
 	    let spring = SpringBundle {
 		restLength: RestLength(1.),
+		once: Once(true),
 		dampingFactor: DampingFactor(DAMPING_FACTOR),
 		stiffness: Stiffness(STIFFNESS),
 		point_a: PointA(current),
@@ -182,6 +187,7 @@ impl utility {
 	    };
 	    springs.push(spring);
 	}
+	springs
     }
     fn draw_paths(list_of_points: &Vec<Vec2>) -> ShapeBundle {
         let mut path_builder = PathBuilder::new();
@@ -329,6 +335,9 @@ fn startup_sequence(mut commands: Commands) {
         });
 
     let springs = utility::make_springs(&entitys);
+    for spring in springs {
+	commands.spawn(spring);
+    }
 
 
     // Parent is the lines, child is the bounding box, and children are all the points
