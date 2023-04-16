@@ -44,7 +44,12 @@ struct Direction(Vec2);
 struct Speed(f32);
 
 #[derive(Component)]
-struct MiniBox(Vec<Vec2>);
+struct MiniBox {
+    p1: Vec2,
+    p2: Vec2,
+    p3: Vec2,
+    p4: Vec2,
+}
 
 #[derive(Component)]
 struct ObjectName(String);
@@ -201,6 +206,12 @@ impl utility {
 	let paths = utility::draw_paths(&list_of_points);
 	let bounding_box = utility::new_bounnding_box();
 	let default_minibox = vec![Vec2::new(0., 0.),Vec2::new(0., 0.),Vec2::new(0., 0.),Vec2::new(0., 0.)];
+	let defailt_minibox = MiniBox {
+	    p1: Vec2::new(0., 0.),
+	    p2: Vec2::new(0., 0.),
+	    p3: Vec2::new(0., 0.),
+	    p4: Vec2::new(0., 0.),
+	};
 	let mut entitys = Vec::new();
 
 	let spawner = commands
@@ -208,7 +219,7 @@ impl utility {
 		paths,
 		Stroke::new(Color::WHITE, 4.0),
 		Group,
-		MiniBox(default_minibox.clone()),
+		defailt_minibox,
 		Car(Vec2::new(0.0, 0.0)),
 	    ))
 	    .with_children(|parent| {
@@ -258,6 +269,36 @@ impl utility {
     }
 }
 
+// This needs to first check for a collisioin between minibox
+fn collision_detection(
+    mini_box_query: Query<&MiniBox, With<Group>>,
+)
+{
+  // # are the sides of one rectangle touching the other?
+
+    // return r1x + r1w >= r2x and \   # r1 right edge past r2 left
+        // r1x <= r2x + r2w and \  # r1 left edge past r2 right
+        // r1y + r1h >= r2y and \   # r1 top edge past r2 bottom
+        // r1y <= r2y + r2h    # r1 bottom edge past r2 top
+    let array: Vec<&MiniBox> = mini_box_query.iter().collect();
+;
+    for i in 0..array.len() - 1 {
+
+
+	for j in (i + 1)..array.len() - 1 {
+	   let box_a = array[i];
+	   let box_b = array[j];
+	   
+
+	   
+
+	    
+	}
+	
+    }
+
+}
+
 // The line is the parent and the points are the children
 // Query children in the line query
 
@@ -278,11 +319,12 @@ fn update_springs(
 	let b_translation = b.0.translation;
 	let b_velocity = b.1.0;
 
+	// calculate the rest length once to get the proper size
 	if once.0 {
 	    once.0 = false;
 
 	    rest_length.0 = a_translation.distance(b_translation);
-	    println!("Rest Length is {}", rest_length.0);
+	    // println!("Rest Length is {}", rest_length.0);
 	}
 	// Hooks law 
 	let b_minus_a_norm = (b_translation - a_translation).normalize();
@@ -340,15 +382,13 @@ fn minimum_bounding_box(
 		    //   calulate all four points to get minimum bounding box
 	    }
 	}
-	let minibox_test = vec![
-	   Vec2::new(minX, minY),
-	   Vec2::new(minX, maxY),
-	   Vec2::new(maxX, maxY),
-	   Vec2::new(maxX, minY),
-	];
+	minibox.p1 = Vec2::new(minX, minY);
+	minibox.p3 = Vec2::new(minX, maxY);
+	minibox.p2 = Vec2::new(maxX, maxY);
+	minibox.p4 = Vec2::new(maxX, minY);
 
-	minibox.0 = minibox_test;
-	println!("{:?}", minibox.0);
+	// Print the minimum bounding box
+	println!("Point 1{:?}, Point 2{:?}", minibox.p1, minibox.p2);
     }
 	
 }
