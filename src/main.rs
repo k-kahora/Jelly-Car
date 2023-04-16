@@ -17,6 +17,7 @@ fn main() {
         .add_startup_system(startup_sequence)
         .add_system(point_movement)
         .add_system(line_movement)
+        .add_system(minimum_bounding_box)
         .add_system(find_center_point)
         .add_system(camera_follow_system)
         .add_system(confine_movement)
@@ -43,6 +44,9 @@ struct Direction(Vec2);
 struct Speed(f32);
 
 #[derive(Component)]
+struct MiniBox(Vec<Vec2>);
+
+#[derive(Component)]
 struct ObjectName(String);
 
 #[derive(Component)]
@@ -50,7 +54,6 @@ struct Mass(f32);
 
 #[derive(Component)]
 struct Force(Vec2);
-
 
 #[derive(Component)]
 struct Car(Vec2);
@@ -249,7 +252,7 @@ fn update_springs(
 
 	// take total spring force and multiply it by the normalized dircetioin vector of the other point
 
-	println!("Spring Force {}", total_spring_force);
+	// println!("Spring Force {}", total_spring_force);
     }
     
 
@@ -257,35 +260,52 @@ fn update_springs(
 
 fn minimum_bounding_box(
     point_query: Query<&Transform, With<Point>>,
-    mut line_query: Query<(&mut Path, &Children), With<Group>>,
-    time: Res<Time>,
-) {
-    let mut path_builder = PathBuilder::new();
-    let mut maxX: f32 = 0.0;
-    let mut minX: f32 = 100.0;
-    let mut maxY: f32 = 0.0;
-    let mut minY: f32 = 100.0;
-    for transform in point_query.iter() {
-        let position = transform.translation;
-        // Update minimum and maximum X and Y values
-        if position.x < minX {
-            minX = position.x;
-        }
-        if position.y < minY {
-            minY = position.y;
-        }
-        if position.x > maxX {
-            maxX = position.x;
-        }
-        if position.y > maxY {
-            maxY = position.y;
-        }
+    mut group_query: Query<(&mut Children, &mut MiniBox), With<Group>>,    time: Res<Time>
+)
+{
 
-        // ...
+    // I want to query all groups
+    // Gathre point children
+    // Gather bounding box children
+    // Use point children to update the 
+    
+    for (mut children, mut minibox) in group_query.iter_mut() {
+	let mut maxX = f32::MIN;
+	let mut maxY = f32::MIN;
+	let mut minX = f32::MAX;
+	let mut minY = f32::MAX; 
+	for mut child  in children.iter() {
+	    let point = point_query.get(*child);
+	    // let mut box = bounding_box_query.get(child)
+	    if let Ok(transform) = point {
+		let position = transform.translation;
+		// Update minimum and maximum X and Y values
+		if position.x < minX {
+		    minX = position.x;
+		}
+		if position.y < minY {
+		    minY = position.y;
+		}
+		if position.x > maxX {
+		    maxX = position.x;
+		}
+		if position.y > maxY {
+		    maxY = position.y;
+		}	
+		    //   calulate all four points to get minimum bounding box
+	    }
+	}
+	let minibox_test = vec![
+	   Vec2::new(minX, minY),
+	   Vec2::new(minX, maxY),
+	   Vec2::new(maxX, maxY),
+	   Vec2::new(maxX, minY),
+	];
+
+	minibox.0 = minibox_test;
+	println!("{:?}", minibox.0);
     }
-
-    // Create new Path component with four points representing the bounding box corners
-    // ...
+	
 }
 
 // Bounding Box needs to be calculated every frame for all non moving entitys
@@ -343,6 +363,7 @@ fn startup_sequence(mut commands: Commands) {
     let points = utility::new_group(&car);
     let paths = utility::draw_paths(&car);
     let bounding_box = utility::new_bounnding_box();
+    let default_minibox = vec![Vec2::new(0., 0.),Vec2::new(0., 0.),Vec2::new(0., 0.),Vec2::new(0., 0.)];
     let mut entitys = Vec::new();
 
     commands
@@ -350,6 +371,7 @@ fn startup_sequence(mut commands: Commands) {
             paths,
             Stroke::new(Color::WHITE, 4.0),
             Group,
+	    MiniBox(default_minibox.clone()),
             Car(Vec2::new(0.0, 0.0)),
         ))
         .with_children(|parent| {
