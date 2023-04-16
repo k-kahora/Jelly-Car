@@ -18,7 +18,7 @@ fn main() {
         .add_system(point_movement)
         .add_system(line_movement)
         .add_system(find_center_point)
-        // .add_system(camera_follow_system)
+        .add_system(camera_follow_system)
         .add_system(confine_movement)
         .run();
 }
@@ -208,9 +208,14 @@ impl utility {
 // The line is the parent and the points are the children
 // Query children in the line query
 
+// Calculates the force on each spring
 fn update_springs(
     // Need to query for the position of aech point on the spring
-    // 
+    // Step 1: Query all sprinps
+    // Step 2: Get a query for the two points on the spring, we need theri position
+    spring_query: Query<(&mut RestLength, &Stiffness, &DampingFactor)>,
+    point_query: Query<&Transform, With<Point>>
+    
 
 
 
