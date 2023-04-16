@@ -18,13 +18,13 @@ fn main() {
         .add_system(point_movement)
         .add_system(line_movement)
         .add_system(find_center_point)
-        .add_system(camera_follow_system)
+        // .add_system(camera_follow_system)
         .add_system(confine_movement)
         .run();
 }
 
 pub const POINT_SPEED: f32 = 200.0;
-pub const GRAVITY: f32 = 9.;
+pub const GRAVITY: Vec2 = Vec2::new(0., -9.8);
 pub const STIFFNESS: f32 = 9.;
 pub const DAMPING_FACTOR: f32 = 9.;
 
@@ -45,7 +45,7 @@ struct Speed(f32);
 struct ObjectName(String);
 
 #[derive(Component)]
-struct Mass(i32);
+struct Mass(f32);
 
 #[derive(Component)]
 struct Force(Vec2);
@@ -118,19 +118,23 @@ struct utility {}
 #[derive(Component)]
 struct Group;
 
+#[derive(Component)]
+struct Velocity(Vec2);
+
 #[derive(Bundle)]
 struct PointMassBundle {
     // These are the properties of a point mass
     mass: Mass,
+    force: Force,
     position: Position,
     direction: Direction,
     // Later replace speed with force
-    speed: Speed,
-
+    velocity: Velocity,
     // Superflous data
     shape: ShapeBundle,
     color: Fill,
 }
+
 
 impl utility {
     fn new_group(list_of_points: &Vec<Vec2>) -> Vec<PointMassBundle> {
@@ -144,7 +148,8 @@ impl utility {
             };
 
             point_masses.push(PointMassBundle {
-                mass: Mass(1),
+                mass: Mass(1.),
+                force: Force(Vec2::new(0., 0.)),
                 position: Position(point.clone()),
                 // random::<f32>(),random::<f32>()
                 direction: Direction(Vec2::new(0., -1.)),
@@ -155,7 +160,7 @@ impl utility {
                 },
                 // in the future get the name from MassPointgroup
                 color: Fill::color(Color::WHITE),
-                speed: Speed(0.),
+                velocity: Velocity(Vec2::new(0., 0.)),
             })
         }
 
@@ -202,6 +207,16 @@ impl utility {
 
 // The line is the parent and the points are the children
 // Query children in the line query
+
+fn update_springs(
+    // Need to query for the position of aech point on the spring
+    // 
+
+
+
+) {
+    
+}
 
 fn minimum_bounding_box(
     point_query: Query<&Transform, With<Point>>,
@@ -257,13 +272,18 @@ fn line_movement(
 }
 
 fn point_movement(
-    mut point_query: Query<(&mut Transform, &Point, &Direction, &mut Speed)>,
+    mut point_query: Query<(&mut Transform, &mut Force, &Mass, &Point, &Direction, &mut Velocity)>,
     time: Res<Time>,
 ) {
-    for (mut transform, point, velocity, mut speed) in point_query.iter_mut() {
+    for (mut transform,mut force, mass, point, direction, mut velocity) in point_query.iter_mut() {
         let direction = Vec3::new(velocity.0.x, velocity.0.y, 0.);
-        speed.0 += GRAVITY;
-        transform.translation += direction.normalize() * speed.0 * time.delta_seconds();
+	force.0 = Vec2::new(0.,0.);
+	force.0 += GRAVITY * mass.0;
+	velocity.0 += (force.0 / mass.0) * time.delta_seconds();
+	let displacement = velocity.0 * time.delta_seconds();
+	let vec2to3 = Vec3::new(displacement.x, displacement.y, 0.);
+	transform.translation += vec2to3;
+        // transform.translation += direction.normalize() * time.delta_seconds();
     }
 }
 
