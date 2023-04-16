@@ -195,7 +195,7 @@ impl utility {
 	springs
     }
 
-    fn spawn_shape( mut commands: Commands, list_of_points: &Vec<Vec2>, anchor: bool ) {
+    fn spawn_shape( commands: &mut Commands, list_of_points: &Vec<Vec2>, anchor: bool ) {
 	
 	let points = utility::new_group(&list_of_points);
 	let paths = utility::draw_paths(&list_of_points);
@@ -405,16 +405,16 @@ fn startup_sequence(mut commands: Commands) {
         Vec2::new(0., 0.),
     ];
 
-    utility::spawn_shape(commands, &car, true);
+    utility::spawn_shape(&mut commands, &car, false);
 
     let rect = vec![
-        Vec2::new(0., -200.),
-        Vec2::new(200., -200.),
-        Vec2::new(200., -250.),
-        Vec2::new(-200., -250.),
-        Vec2::new(-200., -0.),
+        Vec2::new(0., -100.),
+        Vec2::new(50., -100.),
+        Vec2::new(50., -4000.),
+        Vec2::new(0., -4000.),
     ];
 
+    utility::spawn_shape(&mut commands, &rect, true);
 
     // utility::spawn_shape(commands, &car, true);
 
