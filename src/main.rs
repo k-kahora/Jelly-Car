@@ -1,6 +1,7 @@
 use bevy::{
     prelude::{shape::Circle, *},
-    transform::{self, commands}, utils::tracing::Instrument,
+    transform::{self, commands},
+    utils::tracing::Instrument,
 };
 
 use bevy::window::PrimaryWindow;
@@ -22,12 +23,12 @@ fn main() {
         .add_system(find_center_point)
         .add_system(camera_follow_system)
         .add_system(confine_movement)
-        .add_system(update_springs)
+        // .add_system(update_springs)
         .run();
 }
 
 pub const POINT_SPEED: f32 = 200.0;
-pub const GRAVITY: Vec2 = Vec2::new(0., -9.8);
+pub const GRAVITY: Vec2 = Vec2::new(0., -28.8);
 pub const STIFFNESS: f32 = 9.;
 pub const DAMPING_FACTOR: f32 = 9.;
 
@@ -69,7 +70,7 @@ struct Car(Vec2);
 
 // A spring is a entity
 // With A, and B as th start and end-point between
-// It also has a 
+// It also has a
 #[derive(Component)]
 struct Stiffness(f32);
 
@@ -151,7 +152,6 @@ struct PointMassBundle {
     color: Fill,
 }
 
-
 impl utility {
     fn new_group(list_of_points: &Vec<Vec2>) -> Vec<PointMassBundle> {
         let mut point_masses = Vec::new();
@@ -184,68 +184,68 @@ impl utility {
     }
 
     // generate a springs based on the points
-    fn make_springs(list_of_points: &Vec<Entity>) -> Vec<SpringBundle>{
-	let mut springs: Vec<SpringBundle> = Vec::new();
-	for i in 0..list_of_points.len() - 1 {
-	    let current = list_of_points[i];
-	    let next_val = list_of_points[i + 1];
-	    let spring = SpringBundle {
-		restLength: RestLength(1.),
-		once: Once(true),
-		dampingFactor: DampingFactor(DAMPING_FACTOR),
-		stiffness: Stiffness(STIFFNESS),
-		point_a_and_b: PointAandB(vec![current, next_val]),
-	    };
-	    springs.push(spring);
-	}
-	springs
+    fn make_springs(list_of_points: &Vec<Entity>) -> Vec<SpringBundle> {
+        let mut springs: Vec<SpringBundle> = Vec::new();
+        for i in 0..list_of_points.len() - 1 {
+            let current = list_of_points[i];
+            let next_val = list_of_points[i + 1];
+            let spring = SpringBundle {
+                restLength: RestLength(1.),
+                once: Once(true),
+                dampingFactor: DampingFactor(DAMPING_FACTOR),
+                stiffness: Stiffness(STIFFNESS),
+                point_a_and_b: PointAandB(vec![current, next_val]),
+            };
+            springs.push(spring);
+        }
+        springs
     }
 
-    fn spawn_shape( commands: &mut Commands, list_of_points: &Vec<Vec2>, anchor: bool ) {
-	
-	let points = utility::new_group(&list_of_points);
-	let paths = utility::draw_paths(&list_of_points);
-	let bounding_box = utility::new_bounnding_box();
-	let default_minibox = vec![Vec2::new(0., 0.),Vec2::new(0., 0.),Vec2::new(0., 0.),Vec2::new(0., 0.)];
-	let defailt_minibox = MiniBox {
-	    p1: Vec2::new(0., 0.),
-	    p2: Vec2::new(0., 0.),
-	    p3: Vec2::new(0., 0.),
-	    p4: Vec2::new(0., 0.),
-	};
-	let mut entitys = Vec::new();
+    fn spawn_shape(commands: &mut Commands, list_of_points: &Vec<Vec2>, anchor: bool) {
+        let points = utility::new_group(&list_of_points);
+        let paths = utility::draw_paths(&list_of_points);
+        let bounding_box = utility::new_bounnding_box();
+        let default_minibox = vec![
+            Vec2::new(0., 0.),
+            Vec2::new(0., 0.),
+            Vec2::new(0., 0.),
+            Vec2::new(0., 0.),
+        ];
+        let defailt_minibox = MiniBox {
+            p1: Vec2::new(0., 0.),
+            p2: Vec2::new(0., 0.),
+            p3: Vec2::new(0., 0.),
+            p4: Vec2::new(0., 0.),
+        };
+        let mut entitys = Vec::new();
 
-	let spawner = commands
-	    .spawn((
-		paths,
-		Stroke::new(Color::WHITE, 4.0),
-		Group,
-		defailt_minibox,
-		Car(Vec2::new(0.0, 0.0)),
-	    ))
-	    .with_children(|parent| {
-		for point in points {
-		    let mut spawn = parent.spawn((point, Point));
-		    if anchor {
-			spawn.insert(Anchored);
-		    }
-		    let id = spawn.id();
-		    entitys.push(id);
-		}
-		// Make a bounding box here
-	    });
-	// if anchor {
-	//     spawner.insert(Anchored);
-	// }
+        let spawner = commands
+            .spawn((
+                paths,
+                Stroke::new(Color::WHITE, 4.0),
+                Group,
+                defailt_minibox,
+                Car(Vec2::new(0.0, 0.0)),
+            ))
+            .with_children(|parent| {
+                for point in points {
+                    let mut spawn = parent.spawn((point, Point));
+                    if anchor {
+                        spawn.insert(Anchored);
+                    }
+                    let id = spawn.id();
+                    entitys.push(id);
+                }
+                // Make a bounding box here
+            });
+        // if anchor {
+        //     spawner.insert(Anchored);
+        // }
 
-	let springs = utility::make_springs(&entitys);
-	for spring in springs {
-	    commands.spawn(spring);
-	}
-
-
-
-
+        let springs = utility::make_springs(&entitys);
+        for spring in springs {
+            commands.spawn(spring);
+        }
     }
 
     fn draw_paths(list_of_points: &Vec<Vec2>) -> ShapeBundle {
@@ -273,7 +273,7 @@ impl utility {
 // This needs to first check for a collisioin between minibox
 // We need the point and the list of edges
 // fn is_inside(point_a: Vec<&Entity>, point_b: Vec<&Entity>, query: Query<&Transform, With<Point>>) {
-    
+
 // 		println!("collision")
 // }
 
@@ -281,104 +281,99 @@ fn collision_detection(
     mini_box_query: Query<(&MiniBox, &Children), With<Group>>,
     mut point_query: Query<&mut Transform, With<Point>>,
     mut point_query_velocity: Query<&mut Velocity, With<Point>>,
-)
-{
+) {
     let array: Vec<(&MiniBox, &Children)> = mini_box_query.iter().collect();
-;
     // All groups
     for i in 0..array.len() - 1 {
+        // println!("BoxA: {:?} {:?}", array[i].p1, array[i].p2);
+        for j in (i + 1)..array.len() {
+            // println!("BoxB: {:?} {:?}", array[j].p1, array[j].p2);
+            let box_a_1 = array[i].0.p1;
+            let box_a_2 = array[i].0.p2;
+            let box_b_1 = array[j].0.p1;
+            let box_b_2 = array[j].0.p2;
+            let mut x_match = false;
+            let mut y_match = false;
 
-	// println!("BoxA: {:?} {:?}", array[i].p1, array[i].p2);
-	for j in (i + 1)..array.len() {
-	   // println!("BoxB: {:?} {:?}", array[j].p1, array[j].p2);
-	   let box_a_1 = array[i].0.p1;
-	   let box_a_2 = array[i].0.p2;
-	   let box_b_1 = array[j].0.p1;
-	   let box_b_2 = array[j].0.p2;
-	   let mut x_match = false;
-	   let mut y_match = false;
+            if ((box_a_1.x > box_b_1.x) && (box_a_1.x < box_b_2.x))
+                || ((box_a_2.x > box_b_1.x) && (box_a_1.x < box_a_2.x))
+            {
+                x_match = true
+            }
+            if ((box_a_1.y > box_b_1.y) && (box_a_1.y < box_b_2.y))
+                || ((box_a_2.y > box_b_1.y) && (box_a_2.y < box_b_2.y))
+            {
+                y_match = true
+            }
 
-	    if ((box_a_1.x > box_b_1.x) && (box_a_1.x < box_b_2.x))
-	        || ((box_a_2.x > box_b_1.x) && (box_a_1.x < box_a_2.x))
-	    {
-		x_match = true
-	    }
-	    if ((box_a_1.y > box_b_1.y) && (box_a_1.y < box_b_2.y))
-	        || ((box_a_2.y > box_b_1.y) && (box_a_2.y < box_b_2.y))
-	    {
-		y_match = true
-	    }
+            // We need all the children of each point
+            if x_match && y_match {
+                // let a_points:Vec<&Entity> = array[i].1.iter().collect();
+                // let b_points:Vec<&Entity> = array[j].1.iter().collect();
 
-	    // We need all the children of each point
-	    if x_match && y_match {
-		// let a_points:Vec<&Entity> = array[i].1.iter().collect();
-		// let b_points:Vec<&Entity> = array[j].1.iter().collect();
+                let mut count = 0;
 
-		let mut count = 0;
+                for entity in array[i].1.iter() {
+                    let point = point_query.get(*entity);
+                    let mut xp: f32 = 0.;
+                    let mut yp: f32 = 0.;
+                    if let Ok(position) = point {
+                        xp = position.translation.x;
+                        yp = position.translation.y;
+                    }
+                    // Edges
 
-		for entity in array[i].1.iter() {
-		    let point = point_query.get(*entity);
-		    let mut xp: f32 = 0.;
-		    let mut yp: f32 = 0.;
-		    if let Ok(position) = point {
-			xp = position.translation.x;
-			yp = position.translation.y;
-		    }
-		    // Edges
+                    let edges: Vec<&Entity> = array[j].1.iter().collect();
+                    let mut min: f32 = f32::MAX;
+                    let x_inter = 0.;
+                    let y_inter = 0.;
+                    let mut vec_min = Vec2::new(0., 0.);
+                    for k in 0..edges.len() - 1 {
+                        let edge1 = point_query.get(*edges[k]).unwrap();
+                        let edge2 = point_query.get(*edges[k + 1]).unwrap();
 
-		    let edges: Vec<&Entity>= array[j].1.iter().collect();
-		    let mut min: f32 = f32::MAX;
-		    let x_inter = 0.;
-		    let y_inter = 0.;
-		    let mut vec_min = Vec2::new(0., 0.);
-		    for k in 0..edges.len() - 1 {
-			
-			let edge1 = point_query.get(*edges[k]).unwrap();
-			let edge2 = point_query.get(*edges[k + 1]).unwrap();
+                        let x1 = edge1.translation.x;
+                        let y1 = edge1.translation.y;
+                        let x2 = edge2.translation.x;
+                        let y2 = edge2.translation.y;
 
-			let x1 = edge1.translation.x;
-			let y1= edge1.translation.y;
-			let x2 = edge2.translation.x;
-			let y2 = edge2.translation.y;
+                        let m = (y2 - y1) / (x2 - x1);
+                        let b = y1 - m * x1;
+                        let mp = -1. / m;
 
-			let m = (y2-y1) / (x2 - x1);
-			let b = y1 - m * x1;
-			let mp = -1. / m;
+                        let bp = yp - mp * xp;
 
-			let bp = yp - mp * xp;
+                        let x_inter = (bp - b) / (m - mp);
+                        let y_inter = m * x_inter + b;
 
-			let x_inter = (bp - b) / (m - mp);
-			let y_inter = m * x_inter + b;
+                        // Distance form point to edge
+                        let dist = Vec2::new(xp, yp).distance(Vec2::new(x_inter, y_inter));
+                        if dist < min {
+                            min = dist;
+                            vec_min = Vec2::new(x_inter, y_inter);
+                        }
 
-			// Distance form point to edge
-			let dist = Vec2::new(xp, yp).distance(Vec2::new(x_inter, y_inter));
-			if dist < min {
-			    min = dist;
-			    vec_min = Vec2::new(x_inter, y_inter);
-			}
-
-
-			if (yp < y1) != (yp < y2) && xp < x1 + ((yp-y1)/(y2-y1)) * (x2-x1) {
-			    count += 1
-			}
-
-		    }
-		    if count % 2 == 1 {
-			println!("{:?}", vec_min);
-			let mut unwrap_point = point_query.get_mut(*entity).unwrap();
-			let mut unwrap_point_vel = point_query_velocity.get_mut(*entity).unwrap();
-			unwrap_point.translation.x = vec_min.x;
-			unwrap_point.translation.y = vec_min.y;
-			let diff = (vec_min - unwrap_point.translation.truncate()).normalize();
-			let reflect = unwrap_point_vel.0 - 2.0 * (diff * unwrap_point_vel.0) * diff;
-			unwrap_point_vel.0 = reflect;
-			
-		    }
-		}
-	    }
-	}
+                        if (yp < y1) != (yp < y2) && xp < x1 + ((yp - y1) / (y2 - y1)) * (x2 - x1) {
+                            count += 1
+                        }
+                    }
+                    if count % 2 == 1 {
+                        let mut unwrap_point = point_query.get_mut(*entity).unwrap();
+                        let mut unwrap_point_vel = point_query_velocity.get_mut(*entity).unwrap();
+                        let diff = (vec_min - unwrap_point.translation.truncate()).normalize();
+                        println!("{:?}", diff);
+                        let reflect =
+                            unwrap_point_vel.0 - 2.0 * (diff.dot(unwrap_point_vel.0)) * diff;
+                        unwrap_point_vel.0 = reflect;
+                        // println!("{:?}", reflect);
+                        unwrap_point.translation.x = vec_min.x;
+                        unwrap_point.translation.y = vec_min.y;
+                        count = 0;
+                    }
+                }
+            }
+        }
     }
-
 }
 
 // The line is the parent and the points are the children
@@ -389,90 +384,91 @@ fn update_springs(
     // Need to query for the position of aech point on the spring
     // Step 1: Query all sprinps
     // Step 2: Get a query for the two points on the spring, we need theri position
-    mut spring_query: Query<(&mut RestLength, &mut Once, &Stiffness, &DampingFactor, &PointAandB)>,
-    point_query: Query<(&Transform, &mut Velocity), With<Point>>
+    mut spring_query: Query<(
+        &mut RestLength,
+        &mut Once,
+        &Stiffness,
+        &DampingFactor,
+        &PointAandB,
+    )>,
+    point_query: Query<(&Transform, &mut Velocity), With<Point>>,
 ) {
-    
     for (mut rest_length, mut once, stiff, damp, a_b) in spring_query.iter_mut() {
-	let a = point_query.get(a_b.0[0]).unwrap();
-	let b = point_query.get(a_b.0[1]).unwrap();
-	let a_translation = a.0.translation;
-	let a_velocity = a.1.0;
-	let b_translation = b.0.translation;
-	let b_velocity = b.1.0;
+        let a = point_query.get(a_b.0[0]).unwrap();
+        let b = point_query.get(a_b.0[1]).unwrap();
+        let a_translation = a.0.translation;
+        let a_velocity = a.1 .0;
+        let b_translation = b.0.translation;
+        let b_velocity = b.1 .0;
 
-	// calculate the rest length once to get the proper size
-	if once.0 {
-	    once.0 = false;
+        // calculate the rest length once to get the proper size
+        if once.0 {
+            once.0 = false;
 
-	    rest_length.0 = a_translation.distance(b_translation);
-	    // println!("Rest Length is {}", rest_length.0);
-	}
-	// Hooks law 
-	let b_minus_a_norm = (b_translation - a_translation).normalize();
-	// normalized direction vector form A to B
-	let spring_force = ( b_minus_a_norm - rest_length.0) * stiff.0;
-	// Veclocity diffrence
-	let vel_diff = b_velocity - a_velocity;
-	let vel_diff_three = Vec3::new(vel_diff.x, vel_diff.y, 0.);
-	let vel_diff_b_minus_a_norm_dot = b_minus_a_norm.dot(vel_diff_three);
-	let vel_diff_b_minus_a_norm_dot_damp = b_minus_a_norm.dot(vel_diff_three) * damp.0;
-	let total_spring_force = spring_force + vel_diff_b_minus_a_norm_dot_damp;
+            rest_length.0 = a_translation.distance(b_translation);
+            // println!("Rest Length is {}", rest_length.0);
+        }
+        // Hooks law
+        let b_minus_a_norm = (b_translation - a_translation).normalize();
+        // normalized direction vector form A to B
+        let spring_force = (b_minus_a_norm - rest_length.0) * stiff.0;
+        // Veclocity diffrence
+        let vel_diff = b_velocity - a_velocity;
+        let vel_diff_three = Vec3::new(vel_diff.x, vel_diff.y, 0.);
+        let vel_diff_b_minus_a_norm_dot = b_minus_a_norm.dot(vel_diff_three);
+        let vel_diff_b_minus_a_norm_dot_damp = b_minus_a_norm.dot(vel_diff_three) * damp.0;
+        let total_spring_force = spring_force + vel_diff_b_minus_a_norm_dot_damp;
 
-	// take total spring force and multiply it by the normalized dircetioin vector of the other point
+        // take total spring force and multiply it by the normalized dircetioin vector of the other point
 
-	// println!("Spring Force {}", total_spring_force);
+        // println!("Spring Force {}", total_spring_force);
     }
-    
-
 }
 
 fn minimum_bounding_box(
     point_query: Query<&Transform, With<Point>>,
-    mut group_query: Query<(&mut Children, &mut MiniBox), With<Group>>,    time: Res<Time>
-)
-{
-
+    mut group_query: Query<(&mut Children, &mut MiniBox), With<Group>>,
+    time: Res<Time>,
+) {
     // I want to query all groups
     // Gathre point children
     // Gather bounding box children
-    // Use point children to update the 
-    
-    for (mut children, mut minibox) in group_query.iter_mut() {
-	let mut maxX = f32::MIN;
-	let mut maxY = f32::MIN;
-	let mut minX = f32::MAX;
-	let mut minY = f32::MAX; 
-	for mut child  in children.iter() {
-	    let point = point_query.get(*child);
-	    // let mut box = bounding_box_query.get(child)
-	    if let Ok(transform) = point {
-		let position = transform.translation;
-		// Update minimum and maximum X and Y values
-		if position.x < minX {
-		    minX = position.x;
-		}
-		if position.y < minY {
-		    minY = position.y;
-		}
-		if position.x > maxX {
-		    maxX = position.x;
-		}
-		if position.y > maxY {
-		    maxY = position.y;
-		}	
-		    //   calulate all four points to get minimum bounding box
-	    }
-	}
-	minibox.p1 = Vec2::new(minX, minY);
-	minibox.p3 = Vec2::new(minX, maxY);
-	minibox.p2 = Vec2::new(maxX, maxY);
-	minibox.p4 = Vec2::new(maxX, minY);
+    // Use point children to update the
 
-	// Print the minimum bounding box
-	// println!("Point 1{:?}, Point 2{:?}", minibox.p1, minibox.p2);
+    for (mut children, mut minibox) in group_query.iter_mut() {
+        let mut maxX = f32::MIN;
+        let mut maxY = f32::MIN;
+        let mut minX = f32::MAX;
+        let mut minY = f32::MAX;
+        for mut child in children.iter() {
+            let point = point_query.get(*child);
+            // let mut box = bounding_box_query.get(child)
+            if let Ok(transform) = point {
+                let position = transform.translation;
+                // Update minimum and maximum X and Y values
+                if position.x < minX {
+                    minX = position.x;
+                }
+                if position.y < minY {
+                    minY = position.y;
+                }
+                if position.x > maxX {
+                    maxX = position.x;
+                }
+                if position.y > maxY {
+                    maxY = position.y;
+                }
+                //   calulate all four points to get minimum bounding box
+            }
+        }
+        minibox.p1 = Vec2::new(minX, minY);
+        minibox.p3 = Vec2::new(minX, maxY);
+        minibox.p2 = Vec2::new(maxX, maxY);
+        minibox.p4 = Vec2::new(maxX, minY);
+
+        // Print the minimum bounding box
+        // println!("Point 1{:?}, Point 2{:?}", minibox.p1, minibox.p2);
     }
-	
 }
 
 // Bounding Box needs to be calculated every frame for all non moving entitys
@@ -496,17 +492,27 @@ fn line_movement(
 }
 
 fn point_movement(
-    mut point_query: Query<(&mut Transform, &mut Force, &Mass, &Point, &Direction, &mut Velocity), Without<Anchored>>,
+    mut point_query: Query<
+        (
+            &mut Transform,
+            &mut Force,
+            &Mass,
+            &Point,
+            &Direction,
+            &mut Velocity,
+        ),
+        Without<Anchored>,
+    >,
     time: Res<Time>,
 ) {
-    for (mut transform,mut force, mass, point, direction, mut velocity) in point_query.iter_mut() {
+    for (mut transform, mut force, mass, point, direction, mut velocity) in point_query.iter_mut() {
         let direction = Vec3::new(velocity.0.x, velocity.0.y, 0.);
-	force.0 = Vec2::new(0.,0.);
-	force.0 += GRAVITY * mass.0;
-	velocity.0 += (force.0 / mass.0) * time.delta_seconds();
-	let displacement = velocity.0 * time.delta_seconds();
-	let vec2to3 = Vec3::new(displacement.x, displacement.y, 0.);
-	transform.translation += vec2to3;
+        force.0 = Vec2::new(0., 0.);
+        force.0 += GRAVITY * mass.0;
+        velocity.0 += (force.0 / mass.0) * time.delta_seconds();
+        let displacement = velocity.0 * time.delta_seconds();
+        let vec2to3 = Vec3::new(displacement.x, displacement.y, 0.);
+        transform.translation += vec2to3;
         // transform.translation += direction.normalize() * time.delta_seconds();
     }
 }
@@ -516,6 +522,12 @@ fn startup_sequence(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 
     let x_shift = 10.0;
+    // let item1 = vec![
+    //     Vec2::new(20., 100.),
+    //     Vec2::new(40., 100.),
+    //     Vec2::new(40., 120.),
+    // ];
+
     let car = vec![
         Vec2::new(0. + x_shift, 0.),
         Vec2::new(200. + x_shift, 0.),
@@ -531,14 +543,12 @@ fn startup_sequence(mut commands: Commands) {
     utility::spawn_shape(&mut commands, &car, false);
 
     let rect = vec![
-        Vec2::new(0., -100.),
-        Vec2::new(500., -120.),
-        Vec2::new(600., -150.),
-        Vec2::new(20., -130.),
+        Vec2::new(0., 0.),
+        Vec2::new(500., -520.),
+        Vec2::new(0., -550.),
     ];
 
     utility::spawn_shape(&mut commands, &rect, true);
-    
 
     // utility::spawn_shape(commands, &car, true);
 
@@ -568,7 +578,6 @@ fn startup_sequence(mut commands: Commands) {
     // for spring in springs {
     // 	commands.spawn(spring);
     // }
-
 
     // Parent is the lines, child is the bounding box, and children are all the points
 }
