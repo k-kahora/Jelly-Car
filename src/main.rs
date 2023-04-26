@@ -29,8 +29,8 @@ fn main() {
 
 pub const POINT_SPEED: f32 = 200.0;
 pub const GRAVITY: Vec2 = Vec2::new(0., -28.8);
-pub const STIFFNESS: f32 = 100.;
-pub const DAMPING_FACTOR: f32 = 9.;
+pub const STIFFNESS: f32 = 1.;
+pub const DAMPING_FACTOR: f32 = 0.5;
 
 #[derive(Component)]
 struct Position(Vec2);
@@ -191,9 +191,15 @@ impl utility {
     // generate a springs based on the points
     fn make_springs(list_of_points: &Vec<Entity>) -> Vec<SpringBundle> {
         let mut springs: Vec<SpringBundle> = Vec::new();
-        for i in 0..list_of_points.len() - 1 {
+        let start = list_of_points[0];
+        for i in 0..list_of_points.len() {
             let current = list_of_points[i];
-            let next_val = list_of_points[i + 1];
+            let mut next_val;
+            if i == list_of_points.len() - 1 {
+                next_val = start;
+            } else {
+                next_val = list_of_points[i + 1];
+            }
             let spring = SpringBundle {
                 restLength: RestLength(1.),
                 once: Once(true),
@@ -366,7 +372,6 @@ fn collision_detection(
                         let mut unwrap_point = point_query.get_mut(*entity).unwrap();
                         let mut unwrap_point_vel = point_query_velocity.get_mut(*entity).unwrap();
                         let diff = (vec_min - unwrap_point.translation.truncate()).normalize();
-                        println!("{:?}", diff);
                         let reflect =
                             unwrap_point_vel.0 - 2.0 * (diff.dot(unwrap_point_vel.0)) * diff;
                         unwrap_point_vel.0 = reflect;
@@ -399,7 +404,7 @@ fn update_springs(
     mut point_query_mut: Query<(&Transform, &Velocity, &mut SpringForce), With<Point>>,
     point_query: Query<(&Transform, &Velocity), With<Point>>,
 ) {
-    println!("Here");
+    let mut dbg_count = 0;
     for (mut rest_length, mut once, stiff, damp, a_b) in spring_query.iter_mut() {
         let mut a = point_query.get(a_b.0[0]).unwrap();
         let mut b = point_query.get(a_b.0[1]).unwrap();
@@ -415,31 +420,47 @@ fn update_springs(
             rest_length.0 = a_translation.distance(b_translation);
             // println!("Rest Length is {}", rest_length.0);
         }
+
+        dbg_count += 1;
         // Hooks law
+        let b_minus_a = (b_translation - a_translation);
+        let a_minus_b = (a_translation - b_translation);
         let b_minus_a_norm = (b_translation - a_translation).normalize();
         let a_minus_b_norm = (a_translation - b_translation).normalize();
+        let b_minus_a_over_norm = b_minus_a / b_minus_a_norm;
+        let a_minus_b_over_norm = a_minus_b / a_minus_b_norm;
         // normalized direction vector form A to B
-        let spring_force = (b_minus_a_norm - rest_length.0) * stiff.0;
+        // println!("{}", b_minus_a.abs());
+        let spring_force = (b_minus_a.abs().truncate() - rest_length.0) * stiff.0;
+        println!("{}", b_minus_a.abs().truncate());
+        println!("Hree");
+        println!("{}", rest_length.0);
+
         // Veclocity diffrence
         let vel_diff = b_velocity - a_velocity;
         let vel_diff_three = Vec3::new(vel_diff.x, vel_diff.y, 0.);
         let vel_diff_b_minus_a_norm_dot = b_minus_a_norm.dot(vel_diff_three);
-        let vel_diff_b_minus_a_norm_dot_damp = b_minus_a_norm.dot(vel_diff_three) * damp.0;
+        let vel_diff_b_minus_a_norm_dot_damp = vel_diff_b_minus_a_norm_dot * damp.0;
         let total_spring_force = spring_force + vel_diff_b_minus_a_norm_dot_damp;
 
-        let force_a = (total_spring_force * b_minus_a_norm).truncate();
-        let force_b = (total_spring_force * a_minus_b_norm).truncate();
+        let force_a = (total_spring_force * b_minus_a_norm.truncate());
+        let force_b = (total_spring_force * a_minus_b_norm.truncate());
+
+        // println!("{:?}", force_a);
+        // println!("split");
+        // println!("{:?}", force_b);
 
         let mut ar: Vec<(&Transform, &Velocity, Mut<SpringForce>)> =
             point_query_mut.iter_mut().collect();
 
-        ar[0].2 .0 = force_a;
-        ar[1].2 .0 = force_b;
+        ar[0].2 .0 = force_b;
+        ar[1].2 .0 = force_a;
 
         // take total spring force and multiply it by the normalized dircetioin vector of the other point
 
         // println!("Spring Force {}", total_spring_force);
     }
+    dbg_count = 0;
 }
 
 fn minimum_bounding_box(
@@ -543,11 +564,11 @@ fn startup_sequence(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 
     let x_shift = 10.0;
-    // let item1 = vec![
-    //     Vec2::new(20., 100.),
-    //     Vec2::new(40., 100.),
-    //     Vec2::new(40., 120.),
-    // ];
+    let item1 = vec![
+        Vec2::new(20., 100.),
+        Vec2::new(40., 100.),
+        Vec2::new(30., 120.),
+    ];
 
     let car = vec![
         Vec2::new(0. + x_shift, 0.),
@@ -561,7 +582,7 @@ fn startup_sequence(mut commands: Commands) {
         Vec2::new(0. + x_shift, 0.),
     ];
 
-    utility::spawn_shape(&mut commands, &car, false);
+    utility::spawn_shape(&mut commands, &item1, false);
 
     let rect = vec![
         Vec2::new(0., 0.),
