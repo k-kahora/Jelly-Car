@@ -23,13 +23,13 @@ fn main() {
         .add_system(find_center_point)
         .add_system(camera_follow_system)
         .add_system(confine_movement)
-        // .add_system(update_springs)
+        .add_system(update_springs)
         .run();
 }
 
 pub const POINT_SPEED: f32 = 200.0;
 pub const GRAVITY: Vec2 = Vec2::new(0., -28.8);
-pub const STIFFNESS: f32 = 9.;
+pub const STIFFNESS: f32 = 100.;
 pub const DAMPING_FACTOR: f32 = 9.;
 
 #[derive(Component)]
@@ -58,6 +58,9 @@ struct ObjectName(String);
 
 #[derive(Component)]
 struct Mass(f32);
+
+#[derive(Component)]
+struct SpringForce(Vec2);
 
 #[derive(Component)]
 struct Force(Vec2);
@@ -147,6 +150,7 @@ struct PointMassBundle {
     direction: Direction,
     // Later replace speed with force
     velocity: Velocity,
+    spring_force: SpringForce,
     // Superflous data
     shape: ShapeBundle,
     color: Fill,
@@ -169,6 +173,7 @@ impl utility {
                 position: Position(point.clone()),
                 // random::<f32>(),random::<f32>()
                 direction: Direction(Vec2::new(0., -1.)),
+                spring_force: SpringForce(Vec2::new(0., 0.)),
                 shape: ShapeBundle {
                     path: GeometryBuilder::build_as(&circle),
                     transform: Transform::from_xyz(point.clone().x, point.clone().y, 0.),
@@ -391,11 +396,13 @@ fn update_springs(
         &DampingFactor,
         &PointAandB,
     )>,
-    point_query: Query<(&Transform, &mut Velocity), With<Point>>,
+    mut point_query_mut: Query<(&Transform, &Velocity, &mut SpringForce), With<Point>>,
+    point_query: Query<(&Transform, &Velocity), With<Point>>,
 ) {
+    println!("Here");
     for (mut rest_length, mut once, stiff, damp, a_b) in spring_query.iter_mut() {
-        let a = point_query.get(a_b.0[0]).unwrap();
-        let b = point_query.get(a_b.0[1]).unwrap();
+        let mut a = point_query.get(a_b.0[0]).unwrap();
+        let mut b = point_query.get(a_b.0[1]).unwrap();
         let a_translation = a.0.translation;
         let a_velocity = a.1 .0;
         let b_translation = b.0.translation;
@@ -410,6 +417,7 @@ fn update_springs(
         }
         // Hooks law
         let b_minus_a_norm = (b_translation - a_translation).normalize();
+        let a_minus_b_norm = (a_translation - b_translation).normalize();
         // normalized direction vector form A to B
         let spring_force = (b_minus_a_norm - rest_length.0) * stiff.0;
         // Veclocity diffrence
@@ -418,6 +426,15 @@ fn update_springs(
         let vel_diff_b_minus_a_norm_dot = b_minus_a_norm.dot(vel_diff_three);
         let vel_diff_b_minus_a_norm_dot_damp = b_minus_a_norm.dot(vel_diff_three) * damp.0;
         let total_spring_force = spring_force + vel_diff_b_minus_a_norm_dot_damp;
+
+        let force_a = (total_spring_force * b_minus_a_norm).truncate();
+        let force_b = (total_spring_force * a_minus_b_norm).truncate();
+
+        let mut ar: Vec<(&Transform, &Velocity, Mut<SpringForce>)> =
+            point_query_mut.iter_mut().collect();
+
+        ar[0].2 .0 = force_a;
+        ar[1].2 .0 = force_b;
 
         // take total spring force and multiply it by the normalized dircetioin vector of the other point
 
@@ -500,14 +517,18 @@ fn point_movement(
             &Point,
             &Direction,
             &mut Velocity,
+            &SpringForce,
         ),
         Without<Anchored>,
     >,
     time: Res<Time>,
 ) {
-    for (mut transform, mut force, mass, point, direction, mut velocity) in point_query.iter_mut() {
+    for (mut transform, mut force, mass, point, direction, mut velocity, spring_force) in
+        point_query.iter_mut()
+    {
         let direction = Vec3::new(velocity.0.x, velocity.0.y, 0.);
         force.0 = Vec2::new(0., 0.);
+        force.0 += spring_force.0;
         force.0 += GRAVITY * mass.0;
         velocity.0 += (force.0 / mass.0) * time.delta_seconds();
         let displacement = velocity.0 * time.delta_seconds();
