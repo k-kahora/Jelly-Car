@@ -22,14 +22,14 @@ fn main() {
         .add_system(minimum_bounding_box)
         .add_system(find_center_point)
         .add_system(camera_follow_system)
-        .add_system(confine_movement)
+        // .add_system(confine_movement)
         .add_system(update_springs)
         .run();
 }
 
 pub const POINT_SPEED: f32 = 200.0;
 pub const GRAVITY: Vec2 = Vec2::new(0., -28.8);
-pub const STIFFNESS: f32 = 1.;
+pub const STIFFNESS: f32 = 10.;
 pub const DAMPING_FACTOR: f32 = 0.5;
 
 #[derive(Component)]
@@ -201,7 +201,7 @@ impl utility {
                 next_val = list_of_points[i + 1];
             }
             let spring = SpringBundle {
-                restLength: RestLength(1.),
+                restLength: RestLength(0.),
                 once: Once(true),
                 dampingFactor: DampingFactor(DAMPING_FACTOR),
                 stiffness: Stiffness(STIFFNESS),
@@ -253,9 +253,11 @@ impl utility {
         //     spawner.insert(Anchored);
         // }
 
-        let springs = utility::make_springs(&entitys);
-        for spring in springs {
-            commands.spawn(spring);
+        if !anchor {
+            let springs = utility::make_springs(&entitys);
+            for spring in springs {
+                commands.spawn(spring);
+            }
         }
     }
 
@@ -401,8 +403,11 @@ fn update_springs(
         &DampingFactor,
         &PointAandB,
     )>,
-    mut point_query_mut: Query<(&Transform, &Velocity, &mut SpringForce), With<Point>>,
-    point_query: Query<(&Transform, &Velocity), With<Point>>,
+    mut point_query_mut: Query<
+        (&Transform, &Velocity, &mut SpringForce),
+        (With<Point>, Without<Anchored>),
+    >,
+    point_query: Query<(&Transform, &Velocity), (With<Point>, Without<Anchored>)>,
 ) {
     let mut dbg_count = 0;
     for (mut rest_length, mut once, stiff, damp, a_b) in spring_query.iter_mut() {
@@ -417,7 +422,7 @@ fn update_springs(
         if once.0 {
             once.0 = false;
 
-            rest_length.0 = a_translation.distance(b_translation);
+            rest_length.0 = b_translation.distance(a_translation);
             // println!("Rest Length is {}", rest_length.0);
         }
 
@@ -431,10 +436,10 @@ fn update_springs(
         let a_minus_b_over_norm = a_minus_b / a_minus_b_norm;
         // normalized direction vector form A to B
         // println!("{}", b_minus_a.abs());
-        let spring_force = (b_minus_a.abs().truncate() - rest_length.0) * stiff.0;
-        println!("{}", b_minus_a.abs().truncate());
-        println!("Hree");
-        println!("{}", rest_length.0);
+
+        // b-a - b-a * rest_length
+        let spring_force = (b_minus_a - b_minus_a.normalize() * rest_length.0) * stiff.0;
+        // println!("{}", spring_force);
 
         // Veclocity diffrence
         let vel_diff = b_velocity - a_velocity;
@@ -443,8 +448,8 @@ fn update_springs(
         let vel_diff_b_minus_a_norm_dot_damp = vel_diff_b_minus_a_norm_dot * damp.0;
         let total_spring_force = spring_force + vel_diff_b_minus_a_norm_dot_damp;
 
-        let force_a = (total_spring_force * b_minus_a_norm.truncate());
-        let force_b = (total_spring_force * a_minus_b_norm.truncate());
+        let force_a = (total_spring_force * b_minus_a_norm).truncate();
+        let force_b = (total_spring_force * a_minus_b_norm).truncate();
 
         // println!("{:?}", force_a);
         // println!("split");
@@ -550,6 +555,7 @@ fn point_movement(
         let direction = Vec3::new(velocity.0.x, velocity.0.y, 0.);
         force.0 = Vec2::new(0., 0.);
         force.0 += spring_force.0;
+        println!("{}", spring_force.0);
         force.0 += GRAVITY * mass.0;
         velocity.0 += (force.0 / mass.0) * time.delta_seconds();
         let displacement = velocity.0 * time.delta_seconds();
@@ -586,6 +592,7 @@ fn startup_sequence(mut commands: Commands) {
 
     let rect = vec![
         Vec2::new(0., 0.),
+        Vec2::new(500., -20.),
         Vec2::new(500., -520.),
         Vec2::new(0., -550.),
     ];
