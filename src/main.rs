@@ -30,7 +30,7 @@ fn main() {
 pub const POINT_SPEED: f32 = 200.0;
 pub const GRAVITY: Vec2 = Vec2::new(0., -28.8);
 pub const STIFFNESS: f32 = 10.;
-pub const DAMPING_FACTOR: f32 = 0.5;
+pub const DAMPING_FACTOR: f32 = 10.5;
 
 #[derive(Component)]
 struct Position(Vec2);
@@ -571,9 +571,9 @@ fn startup_sequence(mut commands: Commands) {
 
     let x_shift = 10.0;
     let item1 = vec![
-        Vec2::new(20., 100.),
+        // Vec2::new(20., 100.),
         Vec2::new(40., 100.),
-        Vec2::new(30., 120.),
+        Vec2::new(100., 120.),
     ];
 
     let car = vec![
@@ -585,7 +585,6 @@ fn startup_sequence(mut commands: Commands) {
         Vec2::new(60. + x_shift, 90.),
         Vec2::new(30. + x_shift, 45.),
         Vec2::new(0. + x_shift, 40.),
-        Vec2::new(0. + x_shift, 0.),
     ];
 
     utility::spawn_shape(&mut commands, &item1, false);
