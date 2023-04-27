@@ -29,8 +29,8 @@ fn main() {
 
 pub const POINT_SPEED: f32 = 200.0;
 pub const GRAVITY: Vec2 = Vec2::new(0., -28.8);
-pub const STIFFNESS: f32 = 10.;
-pub const DAMPING_FACTOR: f32 = 10.5;
+pub const STIFFNESS: f32 = 100.;
+pub const DAMPING_FACTOR: f32 = 50.;
 
 #[derive(Component)]
 struct Position(Vec2);
@@ -168,7 +168,7 @@ impl utility {
             };
 
             point_masses.push(PointMassBundle {
-                mass: Mass(1.),
+                mass: Mass(10.),
                 force: Force(Vec2::new(0., 0.)),
                 position: Position(point.clone()),
                 // random::<f32>(),random::<f32>()
@@ -403,10 +403,7 @@ fn update_springs(
         &DampingFactor,
         &PointAandB,
     )>,
-    mut point_query_mut: Query<
-        (&Transform, &Velocity, &mut SpringForce),
-        (With<Point>, Without<Anchored>),
-    >,
+    mut point_query_mut: Query<(&mut SpringForce), (With<Point>, Without<Anchored>)>,
     point_query: Query<(&Transform, &Velocity), (With<Point>, Without<Anchored>)>,
 ) {
     let mut dbg_count = 0;
@@ -438,7 +435,10 @@ fn update_springs(
         // println!("{}", b_minus_a.abs());
 
         // b-a - b-a * rest_length
-        let spring_force = (b_minus_a - b_minus_a.normalize() * rest_length.0) * stiff.0;
+        let spring_force = ((b_minus_a.abs() - b_minus_a.normalize()) - rest_length.0) * stiff.0;
+        // println!("rest");
+        println!("{}", rest_length.0);
+        // println!("sprint force");
         // println!("{}", spring_force);
 
         // Veclocity diffrence
@@ -448,23 +448,27 @@ fn update_springs(
         let vel_diff_b_minus_a_norm_dot_damp = vel_diff_b_minus_a_norm_dot * damp.0;
         let total_spring_force = spring_force + vel_diff_b_minus_a_norm_dot_damp;
 
+        // println!("dot force");
+        // println!("{}", vel_diff_b_minus_a_norm_dot_damp);
+
         let force_a = (total_spring_force * b_minus_a_norm).truncate();
         let force_b = (total_spring_force * a_minus_b_norm).truncate();
 
+        let mut a_ = point_query_mut.get_mut(a_b.0[0]).unwrap();
         // println!("{:?}", force_a);
         // println!("split");
         // println!("{:?}", force_b);
 
-        let mut ar: Vec<(&Transform, &Velocity, Mut<SpringForce>)> =
-            point_query_mut.iter_mut().collect();
-
-        ar[0].2 .0 = force_b;
-        ar[1].2 .0 = force_a;
+        a_.0 = force_a;
+        let mut b_ = point_query_mut.get_mut(a_b.0[1]).unwrap();
+        b_.0 = force_b;
+        // points[1].2 .0 = force_a;
 
         // take total spring force and multiply it by the normalized dircetioin vector of the other point
 
         // println!("Spring Force {}", total_spring_force);
     }
+    println!("{}", dbg_count);
     dbg_count = 0;
 }
 
@@ -555,7 +559,7 @@ fn point_movement(
         let direction = Vec3::new(velocity.0.x, velocity.0.y, 0.);
         force.0 = Vec2::new(0., 0.);
         force.0 += spring_force.0;
-        println!("{}", spring_force.0);
+        // println!("{}", spring_force.0);
         force.0 += GRAVITY * mass.0;
         velocity.0 += (force.0 / mass.0) * time.delta_seconds();
         let displacement = velocity.0 * time.delta_seconds();
@@ -570,10 +574,22 @@ fn startup_sequence(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 
     let x_shift = 10.0;
+
+    let item3 = vec![
+        Vec2::new(60., 100.),
+        Vec2::new(100., 100.),
+        // Vec2::new(60., 120.),
+    ];
+    let item2 = vec![
+        Vec2::new(120., 100.),
+        Vec2::new(120., 200.),
+        Vec2::new(60., 120.),
+    ];
+
     let item1 = vec![
-        // Vec2::new(20., 100.),
-        Vec2::new(40., 100.),
-        Vec2::new(100., 120.),
+        Vec2::new(200., 100.),
+        Vec2::new(290., 100.),
+        Vec2::new(245., 170.),
     ];
 
     let car = vec![
@@ -587,7 +603,9 @@ fn startup_sequence(mut commands: Commands) {
         Vec2::new(0. + x_shift, 40.),
     ];
 
+    // utility::spawn_shape(&mut commands, &item1, false);
     utility::spawn_shape(&mut commands, &item1, false);
+    utility::spawn_shape(&mut commands, &item3, false);
 
     let rect = vec![
         Vec2::new(0., 0.),
